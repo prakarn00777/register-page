@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+:root {
+  /* Primary — Dr.Ease default, overridden by product */
+  --primary: #7053E1;
+  --primary-hover: #5F44D0;
+  --primary-soft: rgba(112, 83, 225, 0.06);
+  --primary-ring: rgba(112, 83, 225, 0.12);
+
+  /* Backgrounds */
+  --bg-dark: #F8F9FC;
+  --bg-pure: #ffffff;
+  --bg-hover: rgba(108, 92, 231, 0.04);
+  --card-bg: #ffffff;
+
+  /* Text */
+  --text-main: #16192C;
+  --text-muted: #6E7191;
+  --text-light: #A0A3BD;
+
+  /* Input */
+  --input-bg: #F7F8FC;
+  --input-border: #E2E5F1;
+
+  /* Border */
+  --border: #EFF0F6;
+  --border-light: #F7F8FA;
+
+  /* Status */
+  --success: #00BA88;
+  --warning: #F4B740;
+  --danger: #ED4F4F;
+
+  --modal-bg: #ffffff;
+  --glass-blur: blur(8px);
+}
+
+@theme {
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-bg-dark: var(--bg-dark);
+  --color-bg-pure: var(--bg-pure);
+  --color-bg-hover: var(--bg-hover);
+  --color-card-bg: var(--card-bg);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-light: var(--text-light);
+  --color-border: var(--border);
+  --color-border-light: var(--border-light);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+}
+
+@layer base {
+  html {
+    overflow-y: scroll;
+  }
+
+  body {
+    background: var(--bg-pure);
+    color: var(--text-main);
+    font-family: var(--font-display), var(--font-body), system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    @apply antialiased;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  button:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+}
+
+/* ---- Utilities ---- */
+
+@utility glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03), 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+@utility btn {
+  @apply px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent;
+}
+
+@utility btn-primary {
+  @apply text-white active:scale-[0.98];
+  background: var(--primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+@utility btn-ghost {
+  @apply bg-transparent hover:bg-black/5 text-slate-500 hover:text-slate-700 active:scale-[0.98];
+}
+
+@utility btn-outline {
+  @apply bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300 active:scale-[0.98];
+}
+
+@utility input-field {
+  @apply w-full h-12 px-4 rounded-xl text-sm transition-all;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  color: var(--text-main);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-ring);
+  background: var(--bg-pure);
+}
+
+.input-field::placeholder {
+  color: var(--text-light);
+}
+
+/* ---- PIN Input ---- */
+
+.pin-input {
+  width: 3.5rem;
+  height: 4.5rem;
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  border-radius: 1rem;
+  border: 2px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.pin-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-ring);
+  background: var(--bg-pure);
+}
+
+/* ---- Animations ---- */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes success-check {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes float-1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-12px, -20px); }
+}
+
+@keyframes float-2 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(15px, -18px) rotate(8deg); }
+}
+
+@keyframes float-3 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(-10px, 14px); }
+  66% { transform: translate(14px, -10px); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-up { animation: fade-up 0.4s ease-out forwards; }
+.animate-success { animation: success-check 0.5s ease-out forwards; }
+.animate-float-1 { animation: float-1 8s ease-in-out infinite; }
+.animate-float-2 { animation: float-2 10s ease-in-out infinite; }
+.animate-float-3 { animation: float-3 7s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 30s linear infinite; }
+
+.progress-step {
+  transition: all 0.3s ease;
+}
+
+.progress-step.active {
+  transform: scale(1.1);
+}

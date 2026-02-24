@@ -580,6 +580,37 @@ export async function submitForReview(): Promise<ApiResponse<{ submitted: boolea
 }
 
 // ============================================
+// Console: Create Google Sheet (on-demand)
+// ============================================
+export async function createSheetForSession(): Promise<ApiResponse<{ sheetUrl: string }>> {
+    try {
+        const sessionResult = await getSessionFromCookie();
+        if (!sessionResult.success) return createError(sessionResult.error);
+        const { session } = sessionResult.data;
+
+        if (session.sheet_id) {
+            return createSuccess({ sheetUrl: session.sheet_url || "" });
+        }
+
+        const customerName = session.customer_name || "Customer";
+        const sheet = await createCustomerSheet(customerName);
+        if (!sheet) {
+            return createError("ไม่สามารถสร้าง Google Sheet ได้ กรุณาตรวจสอบการตั้งค่า");
+        }
+
+        await db
+            .from("onboarding_sessions")
+            .update({ sheet_id: sheet.spreadsheetId, sheet_url: sheet.url })
+            .eq("id", session.id);
+
+        return createSuccess({ sheetUrl: sheet.url });
+    } catch (e) {
+        console.error("createSheetForSession error:", e);
+        return createError("เกิดข้อผิดพลาด");
+    }
+}
+
+// ============================================
 // Console: Logout
 // ============================================
 export async function logoutSession(): Promise<ApiResponse<{ loggedOut: boolean }>> {

@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { ClipboardList, Package, ExternalLink, FileSpreadsheet, MessageCircle } from "lucide-react";
+import { useState, useCallback } from "react";
+import { ClipboardList, Package, ExternalLink, FileSpreadsheet, Plus, Loader2, AlertCircle } from "lucide-react";
 import { useSessionStore } from "@/stores/useSessionStore";
+import { createSheetForSession } from "@/actions/onboarding";
 import { getEntityLabel } from "@/types";
 
 type Tab = "procedures" | "products";
 
 export default function ConsoleImportPage() {
-    const { session } = useSessionStore();
+    const { session, setSession } = useSessionStore();
     const [activeTab, setActiveTab] = useState<Tab>("procedures");
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState("");
 
     if (!session) return null;
 
@@ -23,6 +26,19 @@ export default function ConsoleImportPage() {
         { id: "procedures", label: "หัตถการ", icon: ClipboardList, gid: 0 },
         { id: "products", label: "สินค้า", icon: Package, gid: 1 },
     ];
+
+    const handleCreateSheet = useCallback(async () => {
+        setCreating(true);
+        setError("");
+        const result = await createSheetForSession();
+        if (!result.success) {
+            setError(result.error);
+            setCreating(false);
+            return;
+        }
+        // Reload session to get sheet_id/sheet_url
+        window.location.reload();
+    }, []);
 
     return (
         <div className="space-y-6 animate-fade-up">
@@ -97,7 +113,7 @@ export default function ConsoleImportPage() {
                     </p>
                 </>
             ) : (
-                /* No sheet yet */
+                /* No sheet yet — offer to create */
                 <div className="glass-card p-10 text-center space-y-5">
                     <div
                         className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
@@ -107,17 +123,35 @@ export default function ConsoleImportPage() {
                     </div>
                     <div>
                         <h2 className="text-lg font-bold text-text-main mb-2">
-                            ยังไม่มี Google Sheet
+                            สร้าง Google Sheet สำหรับกรอกข้อมูล
                         </h2>
                         <p className="text-sm text-text-muted max-w-md mx-auto leading-relaxed">
-                            ทีม CS จะสร้าง Google Sheet สำหรับกรอกข้อมูลหัตถการและสินค้าให้คุณ
-                            หลังจากตรวจสอบข้อมูลเบื้องต้นเรียบร้อยแล้ว
+                            ระบบจะสร้าง Google Sheet ที่มี template หัตถการและสินค้าให้คุณ
+                            สามารถกรอกข้อมูลได้ทันทีผ่าน Google Sheet
                         </p>
                     </div>
-                    <div className="flex items-center justify-center gap-2 text-sm text-text-light">
-                        <MessageCircle className="w-4 h-4" />
-                        หากต้องการเร่งด่วน กรุณาติดต่อทีม CS ผ่าน LINE
-                    </div>
+
+                    {error && (
+                        <div className="flex items-center justify-center gap-2 text-sm text-red-500 bg-red-50 px-4 py-2.5 rounded-xl max-w-sm mx-auto">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            {error}
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleCreateSheet}
+                        disabled={creating}
+                        className="btn btn-primary mx-auto"
+                    >
+                        {creating ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <>
+                                <Plus className="w-4 h-4" />
+                                สร้าง Google Sheet
+                            </>
+                        )}
+                    </button>
                 </div>
             )}
         </div>

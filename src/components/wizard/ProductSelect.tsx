@@ -121,7 +121,7 @@ export default function ProductSelect({ onSelect, onEditClick, error }: ProductS
                             className="text-sm font-medium hover:underline transition-colors"
                             style={{ color: "var(--primary)" }}
                         >
-                            กลับมาแก้ไขข้อมูล →
+                            เข้าสู่ระบบ →
                         </button>
                     </div>
                 )}

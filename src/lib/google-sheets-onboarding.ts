@@ -1,12 +1,25 @@
 import "server-only";
 import { google } from "googleapis";
 import type { Procedure, Product } from "@/types";
+import fs from "fs";
 
 // ============================================
 // Google Sheets API — Service Account Auth
 // ============================================
 
+const SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+];
+
 function getAuth() {
+    // Option 1: JSON key file (most reliable — no escaping issues)
+    const keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (keyFile && fs.existsSync(keyFile)) {
+        return new google.auth.GoogleAuth({ keyFilename: keyFile, scopes: SCOPES });
+    }
+
+    // Option 2: env vars (email + private key)
     const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
     const key = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
@@ -15,14 +28,7 @@ function getAuth() {
         return null;
     }
 
-    return new google.auth.JWT({
-        email,
-        key,
-        scopes: [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive",
-        ],
-    });
+    return new google.auth.JWT({ email, key, scopes: SCOPES });
 }
 
 function getSheets() {

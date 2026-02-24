@@ -120,7 +120,7 @@ export default function OnboardEntryPage() {
                     <div className="mb-12">
                         <Image
                             src={product === "easepos" ? "/logo-easepos.png" : "/logo-drease.png"}
-                            alt={product === "easepos" ? "EasePos" : "Dr.Ease"}
+                            alt={product === "easepos" ? "Ease POS" : "Dr.Ease"}
                             width={48}
                             height={48}
                             className="rounded-full"

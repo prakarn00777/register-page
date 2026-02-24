@@ -144,7 +144,7 @@ export default function WizardShell({ session, product, demoMode, onBackToProduc
                     <div className="flex items-center justify-between mb-8">
                         <Image
                             src={BRAND_LOGO[product]}
-                            alt={product === "easepos" ? "EasePos" : "Dr.Ease"}
+                            alt={product === "easepos" ? "Ease POS" : "Dr.Ease"}
                             width={40}
                             height={40}
                             className="rounded-full"

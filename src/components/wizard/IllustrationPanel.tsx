@@ -119,7 +119,7 @@ export default function IllustrationPanel({ step = 0, product = "dr_ease" }: Ill
             <div className="absolute bottom-8 left-0 right-0 flex justify-center">
                 <Image
                     src={product === "easepos" ? "/logo-easepos.png" : "/logo-drease.png"}
-                    alt={product === "easepos" ? "EasePos" : "Dr.Ease"}
+                    alt={product === "easepos" ? "Ease POS" : "Dr.Ease"}
                     width={36}
                     height={36}
                     className="rounded-full opacity-30"

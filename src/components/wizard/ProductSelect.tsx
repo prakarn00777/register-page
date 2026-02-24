@@ -21,7 +21,7 @@ const products = [
     },
     {
         id: "easepos" as ProductType,
-        name: "EasePos",
+        name: "Ease POS",
         subtitle: "ระบบขายหน้าร้าน",
         description: "สำหรับร้านค้า ร้านกาแฟ ร้านอาหาร และธุรกิจค้าปลีก",
         logo: "/logo-easepos.png",

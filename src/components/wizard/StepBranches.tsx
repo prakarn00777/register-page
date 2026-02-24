@@ -46,14 +46,23 @@ export default function StepBranches({ data, onChange, product }: StepBranchesPr
     return (
         <div className="space-y-8 animate-fade-up">
             {/* Step Header */}
-            <div>
-                <p className="text-sm font-semibold mb-2" style={{ color: "var(--primary)" }}>
-                    ขั้นตอนที่ 2
-                </p>
-                <h2 className="text-2xl lg:text-3xl font-bold text-text-main leading-tight">
-                    {entity}ของคุณมีกี่สาขา?
-                </h2>
-                <p className="text-text-muted mt-3">เพิ่มข้อมูลสาขาทั้งหมดของ{entity} (อย่างน้อย 1 สาขา)</p>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-sm font-semibold mb-2" style={{ color: "var(--primary)" }}>
+                        ขั้นตอนที่ 2
+                    </p>
+                    <h2 className="text-2xl lg:text-3xl font-bold text-text-main leading-tight">
+                        {entity}ของคุณมีกี่สาขา?
+                    </h2>
+                    <p className="text-text-muted mt-3">เพิ่มข้อมูลสาขาทั้งหมดของ{entity} (อย่างน้อย 1 สาขา)</p>
+                </div>
+                <button
+                    onClick={addBranch}
+                    className="btn btn-outline shrink-0 mt-6"
+                >
+                    <Plus className="w-4 h-4" />
+                    เพิ่มสาขา
+                </button>
             </div>
 
             {/* Branch Cards */}
@@ -123,13 +132,6 @@ export default function StepBranches({ data, onChange, product }: StepBranchesPr
                 ))}
             </div>
 
-            <button
-                onClick={addBranch}
-                className="btn btn-outline w-full"
-            >
-                <Plus className="w-4 h-4" />
-                เพิ่มสาขา
-            </button>
         </div>
     );
 }

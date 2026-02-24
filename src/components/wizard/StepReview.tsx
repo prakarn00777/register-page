@@ -27,15 +27,11 @@ export default function StepReview({ clinicData, branchData, sheetUrl, product, 
 
     const validatePin = useCallback(() => {
         if (hasPin) return true;
-        if (pin.length < 4) {
-            setPinError("PIN ต้องมีอย่างน้อย 4 หลัก");
+        if (pin.length !== 6) {
+            setPinError("PIN ต้องเป็นตัวเลข 6 หลัก");
             return false;
         }
-        if (pin.length > 6) {
-            setPinError("PIN ต้องไม่เกิน 6 หลัก");
-            return false;
-        }
-        if (!/^\d+$/.test(pin)) {
+        if (!/^\d{6}$/.test(pin)) {
             setPinError("PIN ต้องเป็นตัวเลขเท่านั้น");
             return false;
         }
@@ -197,7 +193,7 @@ export default function StepReview({ clinicData, branchData, sheetUrl, product, 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-text-main">
-                                PIN (4-6 หลัก) <span className="text-red-400">*</span>
+                                PIN (6 หลัก) <span className="text-red-400">*</span>
                             </label>
                             <div className="relative">
                                 <input
@@ -205,7 +201,7 @@ export default function StepReview({ clinicData, branchData, sheetUrl, product, 
                                     inputMode="numeric"
                                     maxLength={6}
                                     className="input-field pr-10"
-                                    placeholder="เช่น 1234"
+                                    placeholder="กรอกตัวเลข 6 หลัก"
                                     value={pin}
                                     onChange={(e) => {
                                         const v = e.target.value.replace(/\D/g, "").slice(0, 6);

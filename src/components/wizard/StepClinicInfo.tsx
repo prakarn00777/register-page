@@ -86,7 +86,7 @@ export default function StepClinicInfo({ data, onChange, product }: StepClinicIn
                     ข้อมูลติดต่อ
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField label="เบอร์โทรติดต่อ" required>
+                    <FormField label="เบอร์โทรติดต่อ" required hint="ใช้สำหรับกลับมาแก้ไขข้อมูลภายหลัง">
                         <input
                             type="tel"
                             className="input-field"

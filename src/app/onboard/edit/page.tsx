@@ -95,7 +95,7 @@ export default function OnboardEditPage() {
                                 inputMode="numeric"
                                 maxLength={6}
                                 className="input-field"
-                                placeholder="กรอก PIN 4-6 หลัก"
+                                placeholder="กรอก PIN 6 หลัก"
                                 value={pin}
                                 onChange={(e) => {
                                     const v = e.target.value.replace(/\D/g, "").slice(0, 6);

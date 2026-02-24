@@ -419,6 +419,19 @@ export async function registerCustomer(
 
         if (error || !data) return createError("สร้างข้อมูลไม่สำเร็จ");
 
+        // Auto-create Google Sheet for new customer
+        try {
+            const sheet = await createCustomerSheet(clinicData.clinicNameTh.trim(), product);
+            if (sheet) {
+                await db
+                    .from("onboarding_sessions")
+                    .update({ sheet_id: sheet.spreadsheetId, sheet_url: sheet.url })
+                    .eq("token", data.token);
+            }
+        } catch (e) {
+            console.warn("Auto-create Google Sheet failed (continuing without):", e);
+        }
+
         // Set session cookie
         const signature = signToken(data.token);
         const cookieStore = await cookies();
@@ -593,7 +606,7 @@ export async function createSheetForSession(): Promise<ApiResponse<{ sheetUrl: s
         }
 
         const customerName = session.customer_name || "Customer";
-        const sheet = await createCustomerSheet(customerName);
+        const sheet = await createCustomerSheet(customerName, session.product || undefined);
         if (!sheet) {
             return createError("ไม่สามารถสร้าง Google Sheet ได้ กรุณาตรวจสอบการตั้งค่า");
         }
@@ -682,7 +695,7 @@ export async function createOnboardingSession(
         let sheetId = null;
         let sheetUrl = null;
         try {
-            const sheet = await createCustomerSheet(customerName);
+            const sheet = await createCustomerSheet(customerName, undefined);
             if (sheet) {
                 sheetId = sheet.spreadsheetId;
                 sheetUrl = sheet.url;

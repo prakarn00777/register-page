@@ -36,22 +36,32 @@ function getDrive() {
 // ============================================
 // Create customer sheet from template
 // ============================================
-export async function createCustomerSheet(customerName: string): Promise<{ spreadsheetId: string; url: string } | null> {
+export async function createCustomerSheet(customerName: string, product?: string): Promise<{ spreadsheetId: string; url: string } | null> {
     try {
         const drive = getDrive();
         if (!drive) return null;
 
-        const templateId = process.env.GOOGLE_ONBOARDING_TEMPLATE_SHEET_ID;
+        // Pick template by product (fallback to generic)
+        const templateId = product === "ease_pos"
+            ? (process.env.GOOGLE_TEMPLATE_EASE_POS || process.env.GOOGLE_ONBOARDING_TEMPLATE_SHEET_ID)
+            : (process.env.GOOGLE_TEMPLATE_DR_EASE || process.env.GOOGLE_ONBOARDING_TEMPLATE_SHEET_ID);
+
         if (!templateId) {
             console.warn("Google Sheets: no template sheet ID");
             return null;
         }
 
-        // Copy template
+        // Pick folder by product (fallback to generic)
+        const folderId = product === "ease_pos"
+            ? (process.env.GOOGLE_DRIVE_FOLDER_EASE_POS || process.env.GOOGLE_DRIVE_FOLDER_ID)
+            : (process.env.GOOGLE_DRIVE_FOLDER_DR_EASE || process.env.GOOGLE_DRIVE_FOLDER_ID);
+
+        // Copy template (into company folder if configured)
         const copy = await drive.files.copy({
             fileId: templateId,
             requestBody: {
                 name: `[Onboarding] ${customerName}`,
+                ...(folderId ? { parents: [folderId] } : {}),
             },
         });
 

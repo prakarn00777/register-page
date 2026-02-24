@@ -393,13 +393,15 @@ export async function createOnboardingSession(
     try {
         const pin = generatePin();
 
-        // Create Google Sheet from template
+        // Create Google Sheet from template (disabled in v1)
         let sheetId = null;
         let sheetUrl = null;
         try {
             const sheet = await createCustomerSheet(customerName);
-            sheetId = sheet.spreadsheetId;
-            sheetUrl = sheet.url;
+            if (sheet) {
+                sheetId = sheet.spreadsheetId;
+                sheetUrl = sheet.url;
+            }
         } catch (e) {
             console.warn("Google Sheet creation failed (continuing without):", e);
         }

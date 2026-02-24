@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb',
     },
   },
-  serverExternalPackages: ['googleapis', 'google-auth-library'],
+  serverExternalPackages: ['pg'],
 };
 
 export default nextConfig;

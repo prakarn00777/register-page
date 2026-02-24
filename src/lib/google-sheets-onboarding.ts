@@ -61,8 +61,10 @@ export async function createCustomerSheet(customerName: string, product?: string
             : (process.env.GOOGLE_DRIVE_FOLDER_DR_EASE || process.env.GOOGLE_DRIVE_FOLDER_ID);
 
         // Copy template (into company folder if configured)
+        // supportsAllDrives needed for Google Workspace Shared Drives
         const copy = await drive.files.copy({
             fileId: templateId,
+            supportsAllDrives: true,
             requestBody: {
                 name: `[Onboarding] ${customerName}`,
                 ...(folderId ? { parents: [folderId] } : {}),
@@ -75,6 +77,7 @@ export async function createCustomerSheet(customerName: string, product?: string
         // Make it accessible to anyone with link (editor)
         await drive.permissions.create({
             fileId: spreadsheetId,
+            supportsAllDrives: true,
             requestBody: {
                 role: "writer",
                 type: "anyone",

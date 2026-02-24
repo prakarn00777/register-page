@@ -15,10 +15,14 @@ function getAuth() {
         return null;
     }
 
-    return new google.auth.JWT(email, undefined, key, [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive",
-    ]);
+    return new google.auth.JWT({
+        email,
+        key,
+        scopes: [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ],
+    });
 }
 
 function getSheets() {

@@ -70,7 +70,7 @@ export default function ClinicInfoForm({ data, onChange, product, readOnly }: Cl
 
             {/* Contact */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField label="เบอร์โทรติดต่อ" required hint="ใช้สำหรับเข้าสู่ระบบภายหลัง">
+                <FormField label="เบอร์โทรติดต่อ" required>
                     <input
                         type="tel"
                         className="input-field"

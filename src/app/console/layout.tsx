@@ -35,7 +35,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
             setLoading(true);
             const result = await getConsoleSession();
             if (!result.success) {
-                router.replace("/onboard/login");
+                router.replace("/onboard");
                 return;
             }
             setSession(result.data.session);

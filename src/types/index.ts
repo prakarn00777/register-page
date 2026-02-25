@@ -11,6 +11,7 @@ export type OnboardingStatus = "pending" | "in_progress" | "submitted" | "approv
 export interface OnboardingSession {
     id: number;
     token: string;
+    code: string | null;
     pin: string;
     pin_attempts: number;
     pin_locked_at: string | null;
@@ -23,6 +24,12 @@ export interface OnboardingSession {
     customer_id: number | null;
     created_by: string | null;
     approved_by: string | null;
+    email: string | null;
+    contact_name: string | null;
+    contact_address: string | null;
+    package: string | null;
+    sales_notes: string | null;
+    contract_start: string | null;
     clinic_data: ClinicData;
     branch_data: BranchData[];
     expires_at: string;
@@ -30,6 +37,23 @@ export interface OnboardingSession {
     approved_at: string | null;
     created_at: string;
     updated_at: string;
+}
+
+// ============================================
+// Sales Form Data
+// ============================================
+export interface SalesFormData {
+    customerNameTh: string;
+    customerNameEn: string;
+    branchCount: number;
+    phone: string;
+    email: string;
+    contactName?: string;
+    contactAddress?: string;
+    product: ProductType;
+    package?: string;
+    contractStart?: string;
+    salesNotes?: string;
 }
 
 // ============================================

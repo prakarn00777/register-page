@@ -2,54 +2,32 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LogOut, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import { KeyRound, LogOut, Copy, Check } from "lucide-react";
 import { useSessionStore } from "@/stores/useSessionStore";
-import { changePin, logoutSession } from "@/actions/onboarding";
+import { logoutSession } from "@/actions/onboarding";
 
 export default function ConsoleSettingsPage() {
     const router = useRouter();
     const { session, clearSession } = useSessionStore();
-    const [oldPin, setOldPin] = useState("");
-    const [newPin, setNewPin] = useState("");
-    const [confirmPin, setConfirmPin] = useState("");
-    const [showPin, setShowPin] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const [copied, setCopied] = useState(false);
 
     if (!session) return null;
 
-    const handleChangePin = useCallback(async () => {
-        setError("");
-        setSuccess("");
-
-        if (!oldPin || oldPin.length !== 6) {
-            setError("กรุณากรอก PIN เดิม 6 หลัก");
-            return;
+    const handleCopyCode = useCallback(async () => {
+        if (!session.code) return;
+        try {
+            await navigator.clipboard.writeText(session.code);
+        } catch {
+            const el = document.createElement("textarea");
+            el.value = session.code;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand("copy");
+            document.body.removeChild(el);
         }
-        if (!newPin || newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
-            setError("PIN ใหม่ต้องเป็นตัวเลข 6 หลัก");
-            return;
-        }
-        if (newPin !== confirmPin) {
-            setError("PIN ใหม่ไม่ตรงกัน");
-            return;
-        }
-
-        setSaving(true);
-        const result = await changePin(oldPin, newPin);
-        setSaving(false);
-
-        if (!result.success) {
-            setError(result.error);
-            return;
-        }
-
-        setSuccess("เปลี่ยน PIN สำเร็จ");
-        setOldPin("");
-        setNewPin("");
-        setConfirmPin("");
-    }, [oldPin, newPin, confirmPin]);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }, [session.code]);
 
     const handleLogout = useCallback(async () => {
         await logoutSession();
@@ -61,7 +39,7 @@ export default function ConsoleSettingsPage() {
         <div className="space-y-8 animate-fade-up">
             <div>
                 <h1 className="text-2xl font-bold text-text-main">ตั้งค่า</h1>
-                <p className="text-text-muted text-sm mt-1">จัดการบัญชีและความปลอดภัย</p>
+                <p className="text-text-muted text-sm mt-1">ข้อมูลบัญชีและการเข้าสู่ระบบ</p>
             </div>
 
             {/* Account info */}
@@ -78,111 +56,67 @@ export default function ConsoleSettingsPage() {
                         <span className="text-text-muted">เบอร์โทร: </span>
                         <span className="font-medium text-text-main">{session.clinic_data?.ownerPhone || "-"}</span>
                     </div>
-                </div>
-            </div>
-
-            {/* Change PIN */}
-            <div className="glass-card p-6 space-y-5">
-                <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--primary)" }}>
-                    <KeyRound className="w-4 h-4" />
-                    เปลี่ยน PIN
-                </h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-text-main">
-                            PIN เดิม
-                        </label>
-                        <div className="relative">
-                            <input
-                                type={showPin ? "text" : "password"}
-                                inputMode="numeric"
-                                maxLength={6}
-                                className="input-field pr-10"
-                                placeholder="6 หลัก"
-                                value={oldPin}
-                                onChange={(e) => {
-                                    setOldPin(e.target.value.replace(/\D/g, "").slice(0, 6));
-                                    setError("");
-                                }}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPin(!showPin)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-light hover:text-text-muted transition-colors"
-                            >
-                                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
+                    {session.email && (
+                        <div>
+                            <span className="text-text-muted">อีเมล: </span>
+                            <span className="font-medium text-text-main">{session.email}</span>
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-text-main">
-                            PIN ใหม่
-                        </label>
-                        <input
-                            type={showPin ? "text" : "password"}
-                            inputMode="numeric"
-                            maxLength={6}
-                            className="input-field"
-                            placeholder="6 หลัก"
-                            value={newPin}
-                            onChange={(e) => {
-                                setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6));
-                                setError("");
-                            }}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-text-main">
-                            ยืนยัน PIN ใหม่
-                        </label>
-                        <input
-                            type={showPin ? "text" : "password"}
-                            inputMode="numeric"
-                            maxLength={6}
-                            className="input-field"
-                            placeholder="6 หลัก"
-                            value={confirmPin}
-                            onChange={(e) => {
-                                setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6));
-                                setError("");
-                            }}
-                        />
-                    </div>
-                </div>
-
-                {error && (
-                    <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 px-4 py-2.5 rounded-xl">
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        {error}
-                    </div>
-                )}
-                {success && (
-                    <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-4 py-2.5 rounded-xl">
-                        <CheckCircle2 className="w-4 h-4 shrink-0" />
-                        {success}
-                    </div>
-                )}
-
-                <button
-                    onClick={handleChangePin}
-                    disabled={saving}
-                    className="btn btn-primary"
-                >
-                    {saving ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                        "เปลี่ยน PIN"
                     )}
-                </button>
+                    {session.product && (
+                        <div>
+                            <span className="text-text-muted">ผลิตภัณฑ์: </span>
+                            <span className="font-medium text-text-main">
+                                {session.product === "easepos" ? "Ease POS" : "Dr.Ease"}
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {/* Onboarding Code */}
+            {session.code && (
+                <div className="glass-card p-6 space-y-4">
+                    <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--primary)" }}>
+                        <KeyRound className="w-4 h-4" />
+                        รหัส Onboarding
+                    </h2>
+                    <div className="flex items-center gap-4">
+                        <div
+                            className="px-6 py-3 rounded-xl font-mono text-2xl font-bold tracking-[4px]"
+                            style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
+                        >
+                            {session.code}
+                        </div>
+                        <button
+                            onClick={handleCopyCode}
+                            className="btn btn-ghost text-sm"
+                            style={copied ? { color: "var(--success)" } : undefined}
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="w-4 h-4" />
+                                    คัดลอกแล้ว
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="w-4 h-4" />
+                                    คัดลอก
+                                </>
+                            )}
+                        </button>
+                    </div>
+                    <p className="text-xs text-text-light">
+                        ใช้รหัสนี้สำหรับเข้าสู่ระบบครั้งถัดไปที่ onboarding.atizdesk.com
+                    </p>
+                </div>
+            )}
 
             {/* Logout */}
             <div className="glass-card p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-sm font-semibold text-text-main">ออกจากระบบ</h2>
-                        <p className="text-xs text-text-muted mt-1">ใช้เบอร์โทร + PIN เพื่อเข้าสู่ระบบอีกครั้ง</p>
+                        <p className="text-xs text-text-muted mt-1">ใช้รหัส Onboarding เพื่อเข้าสู่ระบบอีกครั้ง</p>
                     </div>
                     <button
                         onClick={handleLogout}

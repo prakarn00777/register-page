@@ -1,141 +1,190 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { generatePin, signToken, createSuccess, createError } from "@/lib/utils";
+import { signToken, createSuccess, createError } from "@/lib/utils";
 import { createCustomerSheet, readProceduresFromSheet, readProductsFromSheet } from "@/lib/google-sheets-onboarding";
+import { sendOnboardingCodeEmail } from "@/lib/email";
 import { cookies } from "next/headers";
-import type { OnboardingSession, ProductType, ClinicData, BranchData, ApiResponse } from "@/types";
+import type { OnboardingSession, ProductType, SalesFormData, ClinicData, BranchData, ApiResponse } from "@/types";
 
 // ============================================
-// Get Session Status (public, no auth needed)
+// Code Generation
 // ============================================
-export async function getSessionStatus(token: string): Promise<ApiResponse<{
-    status: string;
-    product: ProductType | null;
-    needsPin: boolean;
-}>> {
-    try {
-        const { data: session, error } = await db
-            .from("onboarding_sessions")
-            .select("status, product, pin")
-            .eq("token", token)
-            .single();
+const CODE_CHARS = "ABCDEFGHJKMNPQRTWXY2345679"; // no 0/O/1/I/L/S/5
 
-        if (error || !session) return createError("ไม่พบข้อมูล กรุณาตรวจสอบลิงก์อีกครั้ง");
-
-        return createSuccess({
-            status: session.status,
-            product: session.product,
-            needsPin: session.status !== "pending",
-        });
-    } catch (e) {
-        console.error("getSessionStatus error:", e);
-        return createError("เกิดข้อผิดพลาด");
+function randomChars(len: number): string {
+    let result = "";
+    for (let i = 0; i < len; i++) {
+        result += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
     }
+    return result;
+}
+
+export async function generateCode(nameEn: string): Promise<string> {
+    // Take first 3 uppercase letters from English name
+    const prefix = nameEn
+        .replace(/[^a-zA-Z]/g, "")
+        .substring(0, 3)
+        .toUpperCase()
+        .padEnd(3, "X"); // pad if name is short
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const code = `${prefix}-${randomChars(4)}`;
+
+        // Check uniqueness
+        const { data } = await db
+            .from("onboarding_sessions")
+            .select("id")
+            .eq("code", code)
+            .maybeSingle();
+
+        if (!data) return code;
+    }
+
+    // Fallback: fully random
+    return `${randomChars(3)}-${randomChars(4)}`;
 }
 
 // ============================================
-// Select Product (first-time entry)
+// Sales: Create Session (sales team fills form)
 // ============================================
-export async function selectProduct(token: string, product: ProductType): Promise<ApiResponse<{ success: boolean }>> {
+export async function createSalesSession(formData: SalesFormData): Promise<ApiResponse<{
+    code: string;
+    emailSent: boolean;
+}>> {
     try {
-        const { data: session, error: fetchError } = await db
-            .from("onboarding_sessions")
-            .select("id, expires_at")
-            .eq("token", token)
-            .single();
+        // Validate required fields
+        if (!formData.customerNameTh?.trim()) return createError("กรุณากรอกชื่อร้าน/คลินิก (TH)");
+        if (!formData.customerNameEn?.trim()) return createError("กรุณากรอกชื่อร้าน (EN)");
+        if (!formData.phone?.trim()) return createError("กรุณากรอกเบอร์โทร");
+        if (!formData.email?.trim()) return createError("กรุณากรอกอีเมล");
+        if (!formData.product) return createError("กรุณาเลือกผลิตภัณฑ์");
+        if (formData.branchCount < 1) return createError("จำนวนสาขาต้องอย่างน้อย 1");
 
-        if (fetchError || !session) return createError("ไม่พบข้อมูล");
+        // Generate unique code
+        const code = await generateCode(formData.customerNameEn);
 
-        if (new Date(session.expires_at) < new Date()) {
-            return createError("ลิงก์หมดอายุแล้ว กรุณาติดต่อทีม CS");
+        // Generate default branches from branchCount
+        const branches: BranchData[] = [];
+        for (let i = 0; i < formData.branchCount; i++) {
+            branches.push({
+                name: i === 0 ? "สาขาหลัก" : `สาขา ${i + 1}`,
+                address: "",
+                phone: "",
+                managerName: "",
+                managerPhone: "",
+                isMain: i === 0,
+            });
         }
 
-        const { error } = await db
+        // Insert session
+        const { data, error } = await db
             .from("onboarding_sessions")
-            .update({ product, status: "in_progress" })
-            .eq("token", token);
+            .insert({
+                customer_name: formData.customerNameTh.trim(),
+                code,
+                pin: "", // not used in v2
+                product: formData.product,
+                email: formData.email.trim(),
+                contact_name: formData.contactName?.trim() || null,
+                contact_address: formData.contactAddress?.trim() || null,
+                package: formData.package?.trim() || null,
+                sales_notes: formData.salesNotes?.trim() || null,
+                contract_start: formData.contractStart || null,
+                status: "pending",
+                clinic_data: {
+                    clinicNameTh: formData.customerNameTh.trim(),
+                    clinicNameEn: formData.customerNameEn.trim(),
+                    ownerPhone: formData.phone.trim(),
+                    ownerEmail: formData.email.trim(),
+                },
+                branch_data: branches,
+                created_by: "sales",
+            })
+            .select("id, token")
+            .single();
 
-        if (error) return createError("บันทึกข้อมูลไม่สำเร็จ");
+        if (error || !data) {
+            console.error("createSalesSession insert error:", error);
+            return createError("สร้างข้อมูลไม่สำเร็จ");
+        }
 
-        // Set session cookie
-        const signature = signToken(token);
-        const cookieStore = await cookies();
-        cookieStore.set("onboarding_session", `${token}.${signature}`, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 30,
-            path: "/",
-        });
+        // Auto-create Google Sheet
+        try {
+            const sheet = await createCustomerSheet(formData.customerNameTh.trim(), formData.product);
+            if (sheet) {
+                await db
+                    .from("onboarding_sessions")
+                    .update({ sheet_id: sheet.spreadsheetId, sheet_url: sheet.url })
+                    .eq("id", data.id);
+            }
+        } catch (e) {
+            console.warn("Auto-create Google Sheet failed (continuing):", e);
+        }
+
+        // Send email with code
+        let emailSent = false;
+        try {
+            emailSent = await sendOnboardingCodeEmail({
+                to: formData.email.trim(),
+                customerName: formData.customerNameTh.trim(),
+                code,
+                product: formData.product,
+            });
+        } catch (e) {
+            console.warn("Email send failed (continuing):", e);
+        }
 
         // Log activity
         await db.from("onboarding_activity_log").insert({
-            session_id: session.id,
+            session_id: data.id,
             action: "created",
-            actor: "customer",
-            metadata: { product },
+            actor: "sales",
+            metadata: { product: formData.product, code, emailSent },
         });
 
-        return createSuccess({ success: true });
+        return createSuccess({ code, emailSent });
     } catch (e) {
-        console.error("selectProduct error:", e);
+        console.error("createSalesSession error:", e);
         return createError("เกิดข้อผิดพลาด");
     }
 }
 
 // ============================================
-// PIN Verification
+// Customer: Login with Code
 // ============================================
-export async function verifyPin(token: string, pin: string): Promise<ApiResponse<{ session: OnboardingSession }>> {
+export async function loginWithCode(code: string): Promise<ApiResponse<{ token: string }>> {
     try {
-        // Fetch session by token
+        if (!code?.trim()) return createError("กรุณากรอกรหัส");
+
+        // Normalize: uppercase + trim
+        const normalizedCode = code.trim().toUpperCase();
+
         const { data: session, error } = await db
             .from("onboarding_sessions")
             .select("*")
-            .eq("token", token)
+            .eq("code", normalizedCode)
             .single();
 
-        if (error || !session) return createError("ไม่พบข้อมูล กรุณาตรวจสอบลิงก์อีกครั้ง");
+        if (error || !session) return createError("รหัสไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง");
 
         // Check expiry
         if (new Date(session.expires_at) < new Date()) {
-            return createError("ลิงก์หมดอายุแล้ว กรุณาติดต่อทีม CS");
+            return createError("รหัสหมดอายุแล้ว กรุณาติดต่อทีมเซลล์");
         }
 
-        // Check lock
-        if (session.pin_locked_at) {
-            const lockExpiry = new Date(session.pin_locked_at);
-            lockExpiry.setMinutes(lockExpiry.getMinutes() + 15);
-            if (new Date() < lockExpiry) {
-                return createError("กรอก PIN ผิดหลายครั้ง กรุณารอ 15 นาที");
-            }
-            // Lock expired, reset
-            await db.from("onboarding_sessions")
-                .update({ pin_attempts: 0, pin_locked_at: null })
+        // If first time, set status to in_progress
+        if (session.status === "pending") {
+            await db
+                .from("onboarding_sessions")
+                .update({ status: "in_progress" })
                 .eq("id", session.id);
         }
 
-        // Verify PIN
-        if (session.pin !== pin) {
-            const attempts = (session.pin_attempts || 0) + 1;
-            const updates: Record<string, unknown> = { pin_attempts: attempts };
-            if (attempts >= 5) {
-                updates.pin_locked_at = new Date().toISOString();
-            }
-            await db.from("onboarding_sessions").update(updates).eq("id", session.id);
-            return createError(`PIN ไม่ถูกต้อง (เหลืออีก ${5 - attempts} ครั้ง)`);
-        }
-
-        // Reset attempts on success
-        await db.from("onboarding_sessions")
-            .update({ pin_attempts: 0, pin_locked_at: null })
-            .eq("id", session.id);
-
         // Set session cookie
-        const signature = signToken(token);
+        const signature = signToken(session.token);
         const cookieStore = await cookies();
-        cookieStore.set("onboarding_session", `${token}.${signature}`, {
+        cookieStore.set("onboarding_session", `${session.token}.${signature}`, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
@@ -146,13 +195,14 @@ export async function verifyPin(token: string, pin: string): Promise<ApiResponse
         // Log activity
         await db.from("onboarding_activity_log").insert({
             session_id: session.id,
-            action: "pin_verified",
+            action: "pin_verified", // reuse action type for "code_verified"
             actor: "customer",
+            metadata: { method: "code_login" },
         });
 
-        return createSuccess({ session });
+        return createSuccess({ token: session.token });
     } catch (e) {
-        console.error("verifyPin error:", e);
+        console.error("loginWithCode error:", e);
         return createError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
     }
 }
@@ -164,7 +214,7 @@ export async function getSessionFromCookie(): Promise<ApiResponse<{ session: Onb
     try {
         const cookieStore = await cookies();
         const cookie = cookieStore.get("onboarding_session")?.value;
-        if (!cookie) return createError("กรุณาเข้าสู่ระบบด้วย PIN");
+        if (!cookie) return createError("กรุณาเข้าสู่ระบบด้วยรหัส Onboarding");
 
         const [token, signature] = cookie.split(".");
         const expectedSig = signToken(token);
@@ -186,7 +236,14 @@ export async function getSessionFromCookie(): Promise<ApiResponse<{ session: Onb
 }
 
 // ============================================
-// Save Step Data (auto-save)
+// Console: Get Session
+// ============================================
+export async function getConsoleSession(): Promise<ApiResponse<{ session: OnboardingSession }>> {
+    return getSessionFromCookie();
+}
+
+// ============================================
+// Console: Save Step Data (auto-save)
 // ============================================
 export async function saveStepData(
     token: string,
@@ -237,240 +294,6 @@ export async function saveStepData(
         console.error("saveStepData error:", e);
         return createError("เกิดข้อผิดพลาด");
     }
-}
-
-// ============================================
-// Submit Onboarding
-// ============================================
-export async function submitOnboarding(token: string, pin?: string): Promise<ApiResponse<{ submitted: boolean }>> {
-    try {
-        const updates: Record<string, unknown> = {
-            status: "submitted",
-            submitted_at: new Date().toISOString(),
-        };
-        if (pin) updates.pin = pin;
-
-        const { error } = await db
-            .from("onboarding_sessions")
-            .update(updates)
-            .eq("token", token);
-
-        if (error) return createError("ส่งข้อมูลไม่สำเร็จ");
-
-        // Log activity
-        const { data: session } = await db
-            .from("onboarding_sessions")
-            .select("id")
-            .eq("token", token)
-            .single();
-
-        if (session) {
-            await db.from("onboarding_activity_log").insert({
-                session_id: session.id,
-                action: "submitted",
-                actor: "customer",
-            });
-        }
-
-        return createSuccess({ submitted: true });
-    } catch (e) {
-        console.error("submitOnboarding error:", e);
-        return createError("เกิดข้อผิดพลาด");
-    }
-}
-
-// ============================================
-// Customer: Create Session (self-registration via general link)
-// ============================================
-export async function createCustomerSession(product: ProductType): Promise<ApiResponse<{ token: string }>> {
-    try {
-        const { data, error } = await db
-            .from("onboarding_sessions")
-            .insert({
-                customer_name: "",
-                pin: "",
-                product,
-                status: "in_progress",
-                created_by: null,
-            })
-            .select("token")
-            .single();
-
-        if (error || !data) return createError("สร้างข้อมูลไม่สำเร็จ");
-
-        // Set session cookie
-        const signature = signToken(data.token);
-        const cookieStore = await cookies();
-        cookieStore.set("onboarding_session", `${data.token}.${signature}`, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 30,
-            path: "/",
-        });
-
-        // Log activity
-        const { data: session } = await db
-            .from("onboarding_sessions")
-            .select("id")
-            .eq("token", data.token)
-            .single();
-
-        if (session) {
-            await db.from("onboarding_activity_log").insert({
-                session_id: session.id,
-                action: "created",
-                actor: "customer",
-                metadata: { product, method: "self_registration" },
-            });
-        }
-
-        return createSuccess({ token: data.token });
-    } catch (e) {
-        console.error("createCustomerSession error:", e);
-        return createError("เกิดข้อผิดพลาด");
-    }
-}
-
-// ============================================
-// Customer: Find Session by Phone + PIN (return to edit)
-// ============================================
-export async function findSessionByPhoneAndPin(phone: string, pin: string): Promise<ApiResponse<{ token: string }>> {
-    try {
-        if (!phone || !pin) return createError("กรุณากรอกเบอร์โทรและ PIN");
-
-        const { data: session, error } = await db
-            .from("onboarding_sessions")
-            .select("*")
-            .contains("clinic_data", { ownerPhone: phone })
-            .eq("pin", pin)
-            .in("status", ["in_progress", "submitted"])
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
-
-        if (error || !session) return createError("ไม่พบข้อมูล กรุณาตรวจสอบเบอร์โทรและ PIN");
-
-        // Reset status to in_progress and jump to review step
-        await db
-            .from("onboarding_sessions")
-            .update({ status: "in_progress", current_step: 5 })
-            .eq("id", session.id);
-
-        // Set session cookie
-        const signature = signToken(session.token);
-        const cookieStore = await cookies();
-        cookieStore.set("onboarding_session", `${session.token}.${signature}`, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 30,
-            path: "/",
-        });
-
-        // Log activity
-        await db.from("onboarding_activity_log").insert({
-            session_id: session.id,
-            action: "pin_verified",
-            actor: "customer",
-            metadata: { method: "phone_pin_lookup" },
-        });
-
-        return createSuccess({ token: session.token });
-    } catch (e) {
-        console.error("findSessionByPhoneAndPin error:", e);
-        return createError("เกิดข้อผิดพลาด");
-    }
-}
-
-// ============================================
-// Console: Register Customer (new onboard flow)
-// ============================================
-export async function registerCustomer(
-    product: ProductType,
-    clinicData: ClinicData,
-    branchData: BranchData[],
-    pin: string
-): Promise<ApiResponse<{ token: string }>> {
-    try {
-        if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
-            return createError("PIN ต้องเป็นตัวเลข 6 หลัก");
-        }
-        if (!clinicData.clinicNameTh?.trim()) {
-            return createError("กรุณากรอกชื่อร้าน/คลินิก");
-        }
-        if (!clinicData.ownerPhone?.trim()) {
-            return createError("กรุณากรอกเบอร์โทร");
-        }
-
-        const { data, error } = await db
-            .from("onboarding_sessions")
-            .insert({
-                customer_name: clinicData.clinicNameTh.trim(),
-                pin,
-                product,
-                status: "in_progress",
-                clinic_data: clinicData,
-                branch_data: branchData,
-                created_by: null,
-            })
-            .select("token")
-            .single();
-
-        if (error || !data) return createError("สร้างข้อมูลไม่สำเร็จ");
-
-        // Auto-create Google Sheet for new customer
-        try {
-            const sheet = await createCustomerSheet(clinicData.clinicNameTh.trim(), product);
-            if (sheet) {
-                await db
-                    .from("onboarding_sessions")
-                    .update({ sheet_id: sheet.spreadsheetId, sheet_url: sheet.url })
-                    .eq("token", data.token);
-            }
-        } catch (e) {
-            console.warn("Auto-create Google Sheet failed (continuing without):", e);
-        }
-
-        // Set session cookie
-        const signature = signToken(data.token);
-        const cookieStore = await cookies();
-        cookieStore.set("onboarding_session", `${data.token}.${signature}`, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 30,
-            path: "/",
-        });
-
-        // Log activity
-        const { data: session } = await db
-            .from("onboarding_sessions")
-            .select("id")
-            .eq("token", data.token)
-            .single();
-
-        if (session) {
-            await db.from("onboarding_activity_log").insert({
-                session_id: session.id,
-                action: "created",
-                actor: "customer",
-                metadata: { product, method: "self_registration_v2" },
-            });
-        }
-
-        return createSuccess({ token: data.token });
-    } catch (e) {
-        console.error("registerCustomer error:", e);
-        return createError("เกิดข้อผิดพลาด");
-    }
-}
-
-// ============================================
-// Console: Get Session (for console pages)
-// ============================================
-export async function getConsoleSession(): Promise<ApiResponse<{ session: OnboardingSession }>> {
-    return getSessionFromCookie();
 }
 
 // ============================================
@@ -531,36 +354,6 @@ export async function updateBranchData(branchData: BranchData[]): Promise<ApiRes
 }
 
 // ============================================
-// Console: Change PIN
-// ============================================
-export async function changePin(
-    oldPin: string,
-    newPin: string
-): Promise<ApiResponse<{ changed: boolean }>> {
-    try {
-        const sessionResult = await getSessionFromCookie();
-        if (!sessionResult.success) return createError(sessionResult.error);
-        const { session } = sessionResult.data;
-
-        if (session.pin !== oldPin) return createError("PIN เดิมไม่ถูกต้อง");
-        if (!newPin || newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
-            return createError("PIN ใหม่ต้องเป็นตัวเลข 6 หลัก");
-        }
-
-        const { error } = await db
-            .from("onboarding_sessions")
-            .update({ pin: newPin })
-            .eq("id", session.id);
-
-        if (error) return createError("เปลี่ยน PIN ไม่สำเร็จ");
-        return createSuccess({ changed: true });
-    } catch (e) {
-        console.error("changePin error:", e);
-        return createError("เกิดข้อผิดพลาด");
-    }
-}
-
-// ============================================
 // Console: Submit for Review
 // ============================================
 export async function submitForReview(): Promise<ApiResponse<{ submitted: boolean }>> {
@@ -588,6 +381,42 @@ export async function submitForReview(): Promise<ApiResponse<{ submitted: boolea
         return createSuccess({ submitted: true });
     } catch (e) {
         console.error("submitForReview error:", e);
+        return createError("เกิดข้อผิดพลาด");
+    }
+}
+
+// ============================================
+// Console: Submit Onboarding (legacy compat)
+// ============================================
+export async function submitOnboarding(token: string): Promise<ApiResponse<{ submitted: boolean }>> {
+    try {
+        const { error } = await db
+            .from("onboarding_sessions")
+            .update({
+                status: "submitted",
+                submitted_at: new Date().toISOString(),
+            })
+            .eq("token", token);
+
+        if (error) return createError("ส่งข้อมูลไม่สำเร็จ");
+
+        const { data: session } = await db
+            .from("onboarding_sessions")
+            .select("id")
+            .eq("token", token)
+            .single();
+
+        if (session) {
+            await db.from("onboarding_activity_log").insert({
+                session_id: session.id,
+                action: "submitted",
+                actor: "customer",
+            });
+        }
+
+        return createSuccess({ submitted: true });
+    } catch (e) {
+        console.error("submitOnboarding error:", e);
         return createError("เกิดข้อผิดพลาด");
     }
 }
@@ -633,97 +462,6 @@ export async function logoutSession(): Promise<ApiResponse<{ loggedOut: boolean 
         return createSuccess({ loggedOut: true });
     } catch (e) {
         console.error("logoutSession error:", e);
-        return createError("เกิดข้อผิดพลาด");
-    }
-}
-
-// ============================================
-// Console: Login (phone + PIN) — replaces findSessionByPhoneAndPin for console
-// ============================================
-export async function loginWithPhoneAndPin(phone: string, pin: string): Promise<ApiResponse<{ token: string }>> {
-    try {
-        if (!phone?.trim() || !pin?.trim()) return createError("กรุณากรอกเบอร์โทรและ PIN");
-
-        const { data: session, error } = await db
-            .from("onboarding_sessions")
-            .select("*")
-            .contains("clinic_data", { ownerPhone: phone.trim() })
-            .eq("pin", pin.trim())
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
-
-        if (error || !session) return createError("ไม่พบข้อมูล กรุณาตรวจสอบเบอร์โทรและ PIN");
-
-        // Set session cookie
-        const signature = signToken(session.token);
-        const cookieStore = await cookies();
-        cookieStore.set("onboarding_session", `${session.token}.${signature}`, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 30,
-            path: "/",
-        });
-
-        // Log activity
-        await db.from("onboarding_activity_log").insert({
-            session_id: session.id,
-            action: "pin_verified",
-            actor: "customer",
-            metadata: { method: "console_login" },
-        });
-
-        return createSuccess({ token: session.token });
-    } catch (e) {
-        console.error("loginWithPhoneAndPin error:", e);
-        return createError("เกิดข้อผิดพลาด");
-    }
-}
-
-// ============================================
-// Admin: Create Onboarding Session
-// ============================================
-export async function createOnboardingSession(
-    customerName: string,
-    createdBy: string
-): Promise<ApiResponse<{ token: string; pin: string; url: string; sheetUrl: string }>> {
-    try {
-        const pin = generatePin();
-
-        // Create Google Sheet from template (disabled in v1)
-        let sheetId = null;
-        let sheetUrl = null;
-        try {
-            const sheet = await createCustomerSheet(customerName, undefined);
-            if (sheet) {
-                sheetId = sheet.spreadsheetId;
-                sheetUrl = sheet.url;
-            }
-        } catch (e) {
-            console.warn("Google Sheet creation failed (continuing without):", e);
-        }
-
-        const { data, error } = await db
-            .from("onboarding_sessions")
-            .insert({
-                customer_name: customerName,
-                pin,
-                created_by: createdBy,
-                sheet_id: sheetId,
-                sheet_url: sheetUrl,
-            })
-            .select("token")
-            .single();
-
-        if (error || !data) return createError("สร้าง onboarding ไม่สำเร็จ");
-
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001";
-        const url = `${baseUrl}/onboard/${data.token}`;
-
-        return createSuccess({ token: data.token, pin, url, sheetUrl: sheetUrl || "" });
-    } catch (e) {
-        console.error("createOnboardingSession error:", e);
         return createError("เกิดข้อผิดพลาด");
     }
 }

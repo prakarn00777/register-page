@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
     if (pathname.startsWith("/console")) {
         const cookie = request.cookies.get("onboarding_session")?.value;
         if (!cookie) {
-            return NextResponse.redirect(new URL("/onboard/login", request.url));
+            return NextResponse.redirect(new URL("/onboard", request.url));
         }
     }
 

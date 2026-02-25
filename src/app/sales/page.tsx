@@ -232,13 +232,16 @@ export default function SalesPage() {
                                 <FileText className="w-4 h-4 text-text-light" />
                                 Package
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 className="input-field"
-                                placeholder='เช่น "Starter 13 สาขา"'
                                 value={form.package}
                                 onChange={(e) => update("package", e.target.value)}
-                            />
+                            >
+                                <option value="">-- เลือก Package --</option>
+                                <option value="Starter">Starter</option>
+                                <option value="Standard">Standard</option>
+                                <option value="Elite">Elite</option>
+                            </select>
                         </div>
                     </div>
 

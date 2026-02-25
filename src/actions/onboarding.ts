@@ -58,6 +58,7 @@ export async function createSalesSession(formData: SalesFormData): Promise<ApiRe
         // customerNameEn is optional
         if (!formData.phone?.trim()) return createError("กรุณากรอกเบอร์โทร");
         if (!formData.email?.trim()) return createError("กรุณากรอกอีเมล");
+        if (!formData.package?.trim()) return createError("กรุณาเลือก Package");
         if (!formData.product) return createError("กรุณาเลือกผลิตภัณฑ์");
         if (formData.branchCount < 1) return createError("จำนวนสาขาต้องอย่างน้อย 1");
 

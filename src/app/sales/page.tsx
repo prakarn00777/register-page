@@ -48,6 +48,7 @@ export default function SalesPage() {
         // Client-side validation
         if (!form.customerNameTh.trim()) { setError("กรุณากรอกชื่อร้าน/คลินิก (TH)"); return; }
         // customerNameEn is optional
+        if (!form.package) { setError("กรุณาเลือก Package"); return; }
         if (!form.phone.trim()) { setError("กรุณากรอกเบอร์โทร"); return; }
         if (!form.email.trim()) { setError("กรุณากรอกอีเมล"); return; }
         if (form.branchCount < 1) { setError("จำนวนสาขาต้องอย่างน้อย 1"); return; }
@@ -230,7 +231,7 @@ export default function SalesPage() {
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-sm font-medium text-text-main">
                                 <FileText className="w-4 h-4 text-text-light" />
-                                Package
+                                Package <span className="text-red-400">*</span>
                             </label>
                             <select
                                 className="input-field"

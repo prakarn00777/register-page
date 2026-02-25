@@ -20,13 +20,14 @@ function randomChars(len: number): string {
     return result;
 }
 
-export async function generateCode(nameEn: string): Promise<string> {
-    // Take first 3 uppercase letters from English name
-    const prefix = nameEn
+export async function generateCode(email: string): Promise<string> {
+    // Take first 3 uppercase letters from email (before @)
+    const localPart = email.split("@")[0] || "";
+    const prefix = localPart
         .replace(/[^a-zA-Z]/g, "")
         .substring(0, 3)
         .toUpperCase()
-        .padEnd(3, "X"); // pad if name is short
+        .padEnd(3, "X"); // pad if too short
 
     for (let attempt = 0; attempt < 10; attempt++) {
         const code = `${prefix}-${randomChars(4)}`;
@@ -62,9 +63,8 @@ export async function createSalesSession(formData: SalesFormData): Promise<ApiRe
         if (!formData.product) return createError("กรุณาเลือกผลิตภัณฑ์");
         if (formData.branchCount < 1) return createError("จำนวนสาขาต้องอย่างน้อย 1");
 
-        // Generate unique code (use EN name if available, else TH name, else random)
-        const nameForCode = formData.customerNameEn?.trim() || formData.customerNameTh.trim();
-        const code = await generateCode(nameForCode);
+        // Generate unique code from email prefix
+        const code = await generateCode(formData.email.trim());
 
         // Generate default branches from branchCount
         const branches: BranchData[] = [];

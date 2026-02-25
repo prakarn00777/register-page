@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import {
     Loader2, Building2, GitBranch, CheckCircle2,
-    ArrowRight, ArrowLeft, FileSpreadsheet,
+    ArrowRight, ArrowLeft,
     type LucideIcon,
 } from "lucide-react";
 import ConsoleSidebar from "@/components/console/ConsoleSidebar";
@@ -71,15 +71,7 @@ function getWizardSteps(product: ProductType): WizardStepConfig[] {
             illustrationTitle: "ข้อมูลสาขา",
             illustrationSubtitle: `กรอกรายละเอียดสาขาของ${entity}\nแต่ละสาขาที่ต้องการใช้งาน`,
         },
-        {
-            path: "/console/import",
-            label: "นำเข้าข้อมูล",
-            icon: FileSpreadsheet,
-            illustrationIcon: FileSpreadsheet,
-            illustrationTitle: "หัตถการ & สินค้า",
-            illustrationSubtitle: "กรอกรายการหัตถการและสินค้า\nผ่าน Google Sheet ที่เตรียมไว้",
-        },
-        {
+{
             path: "/console",
             label: "ตรวจสอบ & ส่ง",
             icon: CheckCircle2,

@@ -55,14 +55,15 @@ export async function createSalesSession(formData: SalesFormData): Promise<ApiRe
     try {
         // Validate required fields
         if (!formData.customerNameTh?.trim()) return createError("กรุณากรอกชื่อร้าน/คลินิก (TH)");
-        if (!formData.customerNameEn?.trim()) return createError("กรุณากรอกชื่อร้าน (EN)");
+        // customerNameEn is optional
         if (!formData.phone?.trim()) return createError("กรุณากรอกเบอร์โทร");
         if (!formData.email?.trim()) return createError("กรุณากรอกอีเมล");
         if (!formData.product) return createError("กรุณาเลือกผลิตภัณฑ์");
         if (formData.branchCount < 1) return createError("จำนวนสาขาต้องอย่างน้อย 1");
 
-        // Generate unique code
-        const code = await generateCode(formData.customerNameEn);
+        // Generate unique code (use EN name if available, else TH name, else random)
+        const nameForCode = formData.customerNameEn?.trim() || formData.customerNameTh.trim();
+        const code = await generateCode(nameForCode);
 
         // Generate default branches from branchCount
         const branches: BranchData[] = [];
@@ -94,7 +95,7 @@ export async function createSalesSession(formData: SalesFormData): Promise<ApiRe
                 status: "pending",
                 clinic_data: {
                     clinicNameTh: formData.customerNameTh.trim(),
-                    clinicNameEn: formData.customerNameEn.trim(),
+                    clinicNameEn: formData.customerNameEn?.trim() || "",
                     ownerPhone: formData.phone.trim(),
                     ownerEmail: formData.email.trim(),
                 },

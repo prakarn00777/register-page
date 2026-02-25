@@ -47,7 +47,7 @@ export default function SalesPage() {
     const handleSubmit = useCallback(async () => {
         // Client-side validation
         if (!form.customerNameTh.trim()) { setError("กรุณากรอกชื่อร้าน/คลินิก (TH)"); return; }
-        if (!form.customerNameEn.trim()) { setError("กรุณากรอกชื่อร้าน (EN)"); return; }
+        // customerNameEn is optional
         if (!form.phone.trim()) { setError("กรุณากรอกเบอร์โทร"); return; }
         if (!form.email.trim()) { setError("กรุณากรอกอีเมล"); return; }
         if (form.branchCount < 1) { setError("จำนวนสาขาต้องอย่างน้อย 1"); return; }
@@ -143,7 +143,7 @@ export default function SalesPage() {
                             <input
                                 type="text"
                                 className="input-field"
-                                placeholder="เช่น คลินิกสวยใส"
+                                placeholder=""
                                 value={form.customerNameTh}
                                 onChange={(e) => update("customerNameTh", e.target.value)}
                             />
@@ -151,12 +151,12 @@ export default function SalesPage() {
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-sm font-medium text-text-main">
                                 <Building2 className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                                ชื่อร้าน (EN) <span className="text-red-400">*</span>
+                                ชื่อร้าน (EN)
                             </label>
                             <input
                                 type="text"
                                 className="input-field"
-                                placeholder="e.g. Suay Sai Clinic"
+                                placeholder=""
                                 value={form.customerNameEn}
                                 onChange={(e) => update("customerNameEn", e.target.value)}
                             />
@@ -186,7 +186,7 @@ export default function SalesPage() {
                             <input
                                 type="tel"
                                 className="input-field"
-                                placeholder="0xx-xxx-xxxx"
+                                placeholder=""
                                 value={form.phone}
                                 onChange={(e) => update("phone", e.target.value)}
                             />
@@ -202,7 +202,7 @@ export default function SalesPage() {
                         <input
                             type="email"
                             className="input-field"
-                            placeholder="customer@example.com"
+                            placeholder=""
                             value={form.email}
                             onChange={(e) => update("email", e.target.value)}
                         />
@@ -222,7 +222,7 @@ export default function SalesPage() {
                             <input
                                 type="text"
                                 className="input-field"
-                                placeholder="ชื่อ-นามสกุล"
+                                placeholder=""
                                 value={form.contactName}
                                 onChange={(e) => update("contactName", e.target.value)}
                             />
@@ -264,7 +264,7 @@ export default function SalesPage() {
                             <input
                                 type="text"
                                 className="input-field"
-                                placeholder="ที่อยู่สำหรับติดต่อ"
+                                placeholder=""
                                 value={form.contactAddress}
                                 onChange={(e) => update("contactAddress", e.target.value)}
                             />
@@ -273,11 +273,11 @@ export default function SalesPage() {
 
                     {/* Notes */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-text-main">หมายเหตุจากเซลล์</label>
+                        <label className="text-sm font-medium text-text-main">หมายเหตุ</label>
                         <textarea
                             className="input-field !h-auto py-3"
                             rows={3}
-                            placeholder="ข้อมูลเพิ่มเติม ความต้องการพิเศษ etc."
+                            placeholder=""
                             value={form.salesNotes}
                             onChange={(e) => update("salesNotes", e.target.value)}
                         />

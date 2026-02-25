@@ -89,10 +89,7 @@ export default function SalesPage() {
             <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
                 {/* Header */}
                 <div className="text-center mb-10">
-                    <div className="flex items-center justify-center gap-3 mb-4">
-                        <Image src={brand.logo} alt={brand.name} width={40} height={40} className="rounded-full" />
-                        <h1 className="text-2xl font-bold text-text-main">Sales Registration</h1>
-                    </div>
+                    <h1 className="text-2xl font-bold text-text-main mb-2">Sales Registration</h1>
                     <p className="text-text-muted">
                         กรอกข้อมูลลูกค้าเพื่อสร้างรหัส Onboarding
                     </p>

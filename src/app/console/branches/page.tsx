@@ -44,7 +44,7 @@ export default function ConsoleBranchesPage() {
                     <p className="text-text-muted text-sm mt-1">
                         {isReadOnly
                             ? "ข้อมูลถูกส่งแล้ว ไม่สามารถแก้ไขได้"
-                            : `เพิ่ม แก้ไข หรือลบสาขาของ${entity}`}
+                            : `กรอกรายละเอียดสาขาของ${entity}`}
                     </p>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
@@ -71,6 +71,7 @@ export default function ConsoleBranchesPage() {
                 data={session.branch_data || []}
                 onChange={handleChange}
                 readOnly={isReadOnly}
+                lockCount
             />
         </div>
     );

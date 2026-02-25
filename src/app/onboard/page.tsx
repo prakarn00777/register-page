@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2, AlertCircle, KeyRound, ArrowRight } from "lucide-react";
 import { loginWithCode } from "@/actions/onboarding";
+import { useSessionStore } from "@/stores/useSessionStore";
 
 export default function OnboardLandingPage() {
     const router = useRouter();
@@ -40,7 +41,12 @@ export default function OnboardLandingPage() {
                 setLoading(false);
                 return;
             }
-            router.push("/console");
+            if (result.data.isFirstTime) {
+                useSessionStore.getState().setWizardMode(true);
+                router.push("/console/info");
+            } else {
+                router.push("/console");
+            }
         } catch {
             setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
             setLoading(false);

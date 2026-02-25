@@ -10,6 +10,7 @@ interface BranchesFormProps {
     onChange: (data: BranchData[]) => void;
     readOnly?: boolean;
     compact?: boolean;
+    lockCount?: boolean; // prevent add/remove branches (count fixed from sales)
 }
 
 const emptyBranch: BranchData = {
@@ -21,7 +22,7 @@ const emptyBranch: BranchData = {
     isMain: false,
 };
 
-export default function BranchesForm({ data, onChange, readOnly, compact }: BranchesFormProps) {
+export default function BranchesForm({ data, onChange, readOnly, compact, lockCount }: BranchesFormProps) {
     const branches = data.length === 0
         ? [{ ...emptyBranch, name: "สำนักงานใหญ่", isMain: true }]
         : data;
@@ -47,7 +48,7 @@ export default function BranchesForm({ data, onChange, readOnly, compact }: Bran
     return (
         <div className="space-y-4">
             {/* Add button */}
-            {!readOnly && (
+            {!readOnly && !lockCount && (
                 <div className="flex justify-end">
                     <button onClick={addBranch} className="btn btn-outline text-sm !py-2 !px-4">
                         <Plus className="w-4 h-4" />
@@ -77,7 +78,7 @@ export default function BranchesForm({ data, onChange, readOnly, compact }: Bran
                                 </span>
                             )}
                         </div>
-                        {!readOnly && !branch.isMain && (
+                        {!readOnly && !lockCount && !branch.isMain && (
                             <button
                                 onClick={() => removeBranch(index)}
                                 className="text-slate-300 hover:text-red-400 transition-colors p-1"

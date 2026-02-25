@@ -5,11 +5,13 @@ import type { OnboardingSession, ClinicData, BranchData, ProductType } from "@/t
 interface SessionState {
     session: OnboardingSession | null;
     isLoading: boolean;
+    wizardMode: boolean;
 
     // Actions
     setSession: (session: OnboardingSession) => void;
     clearSession: () => void;
     setLoading: (loading: boolean) => void;
+    setWizardMode: (mode: boolean) => void;
     updateClinicData: (data: ClinicData) => void;
     updateBranchData: (data: BranchData[]) => void;
     updateStatus: (status: OnboardingSession["status"]) => void;
@@ -24,10 +26,12 @@ export const useSessionStore = create<SessionState>()(
         (set, get) => ({
             session: null,
             isLoading: true,
+            wizardMode: false,
 
             setSession: (session) => set({ session, isLoading: false }),
-            clearSession: () => set({ session: null, isLoading: false }),
+            clearSession: () => set({ session: null, isLoading: false, wizardMode: false }),
             setLoading: (isLoading) => set({ isLoading }),
+            setWizardMode: (wizardMode) => set({ wizardMode }),
 
             updateClinicData: (clinicData) => {
                 const { session } = get();
@@ -55,7 +59,7 @@ export const useSessionStore = create<SessionState>()(
         }),
         {
             name: "onboarding_session",
-            partialize: (state) => ({ session: state.session }),
+            partialize: (state) => ({ session: state.session, wizardMode: state.wizardMode }),
         }
     )
 );

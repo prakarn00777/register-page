@@ -155,7 +155,7 @@ export async function createSalesSession(formData: SalesFormData): Promise<ApiRe
 // ============================================
 // Customer: Login with Code
 // ============================================
-export async function loginWithCode(code: string): Promise<ApiResponse<{ token: string }>> {
+export async function loginWithCode(code: string): Promise<ApiResponse<{ token: string; isFirstTime: boolean }>> {
     try {
         if (!code?.trim()) return createError("กรุณากรอกรหัส");
 
@@ -175,8 +175,11 @@ export async function loginWithCode(code: string): Promise<ApiResponse<{ token: 
             return createError("รหัสหมดอายุแล้ว กรุณาติดต่อทีมเซลล์");
         }
 
+        // Track if first time (status is pending)
+        const isFirstTime = session.status === "pending";
+
         // If first time, set status to in_progress
-        if (session.status === "pending") {
+        if (isFirstTime) {
             await db
                 .from("onboarding_sessions")
                 .update({ status: "in_progress" })
@@ -202,7 +205,7 @@ export async function loginWithCode(code: string): Promise<ApiResponse<{ token: 
             metadata: { method: "code_login" },
         });
 
-        return createSuccess({ token: session.token });
+        return createSuccess({ token: session.token, isFirstTime });
     } catch (e) {
         console.error("loginWithCode error:", e);
         return createError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");

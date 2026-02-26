@@ -146,15 +146,17 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                         <p className="text-xs text-text-muted">{session.customer_name}</p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        setWizardMode(false);
-                                        router.push("/console");
-                                    }}
-                                    className="text-xs text-text-light hover:text-text-muted transition-colors"
-                                >
-                                    ข้ามขั้นตอน
-                                </button>
+                                {!isLastStep && (
+                                    <button
+                                        onClick={() => {
+                                            setWizardMode(false);
+                                            router.push("/console");
+                                        }}
+                                        className="text-xs text-text-light hover:text-text-muted transition-colors"
+                                    >
+                                        ข้ามขั้นตอน
+                                    </button>
+                                )}
                             </div>
 
                             {/* Progress dots */}

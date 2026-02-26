@@ -1,7 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Building2, GitBranch, Send, CheckCircle2, AlertTriangle, ArrowRight, Sparkles } from "lucide-react";
+import {
+    Building2, GitBranch, Send, CheckCircle2, AlertTriangle,
+    ArrowRight, Sparkles, Crown, Pencil, Phone, MapPin, Briefcase,
+} from "lucide-react";
 import StatusBadge from "@/components/console/StatusBadge";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { submitForReview } from "@/actions/onboarding";
@@ -10,7 +13,7 @@ import { getEntityLabel } from "@/types";
 
 export default function ConsoleDashboardPage() {
     const router = useRouter();
-    const { session, updateStatus } = useSessionStore();
+    const { session, updateStatus, wizardMode } = useSessionStore();
     const [submitting, setSubmitting] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
@@ -18,6 +21,11 @@ export default function ConsoleDashboardPage() {
 
     const product = session.product || "dr_ease";
     const entity = getEntityLabel(product);
+
+    // Wizard mode → show review summary
+    if (wizardMode) {
+        return <WizardReview />;
+    }
 
     // Calculate data completeness
     const checks = [
@@ -185,6 +193,174 @@ export default function ConsoleDashboardPage() {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+// ==========================================
+// Wizard Review — Summary of all filled data
+// ==========================================
+function WizardReview() {
+    const router = useRouter();
+    const { session } = useSessionStore();
+
+    if (!session) return null;
+
+    const product = session.product || "dr_ease";
+    const entity = getEntityLabel(product);
+    const clinic = session.clinic_data || {};
+    const branches = session.branch_data || [];
+    const empty = "—";
+
+    return (
+        <div className="space-y-6 animate-fade-up">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-text-main">ตรวจสอบข้อมูล</h1>
+                <p className="text-text-muted text-sm mt-1">
+                    ตรวจสอบข้อมูลที่กรอกไว้ก่อนดำเนินการต่อ
+                </p>
+            </div>
+
+            {/* Section: Clinic/Shop Info */}
+            <div className="glass-card p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5">
+                        <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center"
+                            style={{ background: "var(--primary-soft)" }}
+                        >
+                            <Building2 className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                        </div>
+                        <h2 className="text-sm font-semibold text-text-main">ข้อมูล{entity}</h2>
+                    </div>
+                    <button
+                        onClick={() => router.push("/console/info")}
+                        className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-80"
+                        style={{ color: "var(--primary)" }}
+                    >
+                        <Pencil className="w-3.5 h-3.5" />
+                        แก้ไข
+                    </button>
+                </div>
+
+                <div className="space-y-3">
+                    <ReviewRow
+                        icon={Building2}
+                        label={`ชื่อ${entity} (ไทย)`}
+                        value={clinic.clinicNameTh}
+                    />
+                    <ReviewRow
+                        icon={Building2}
+                        label={`ชื่อ${entity} (EN)`}
+                        value={clinic.clinicNameEn}
+                    />
+                    <ReviewRow
+                        icon={Phone}
+                        label="เบอร์โทร"
+                        value={clinic.ownerPhone}
+                    />
+                    <ReviewRow
+                        icon={Briefcase}
+                        label="ประเภทธุรกิจ"
+                        value={clinic.businessType}
+                    />
+                    {clinic.address && (
+                        <ReviewRow
+                            icon={MapPin}
+                            label="ที่อยู่"
+                            value={clinic.address}
+                        />
+                    )}
+                </div>
+            </div>
+
+            {/* Section: Branches */}
+            <div className="glass-card p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5">
+                        <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center"
+                            style={{ background: "var(--primary-soft)" }}
+                        >
+                            <GitBranch className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                        </div>
+                        <h2 className="text-sm font-semibold text-text-main">
+                            สาขา ({branches.length})
+                        </h2>
+                    </div>
+                    <button
+                        onClick={() => router.push("/console/branches")}
+                        className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-80"
+                        style={{ color: "var(--primary)" }}
+                    >
+                        <Pencil className="w-3.5 h-3.5" />
+                        แก้ไข
+                    </button>
+                </div>
+
+                {branches.length > 0 ? (
+                    <div className="space-y-2.5">
+                        {branches.map((branch, i) => (
+                            <div
+                                key={i}
+                                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl"
+                                style={{ background: "var(--input-bg)" }}
+                            >
+                                <div
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
+                                    style={{
+                                        background: branch.isMain ? "rgba(245, 158, 11, 0.1)" : "var(--primary-soft)",
+                                        color: branch.isMain ? "#D97706" : "var(--primary)",
+                                    }}
+                                >
+                                    {branch.isMain ? <Crown className="w-3.5 h-3.5" /> : i + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-text-main truncate">
+                                        {branch.name || empty}
+                                    </p>
+                                    {branch.phone && (
+                                        <p className="text-xs text-text-muted">{branch.phone}</p>
+                                    )}
+                                </div>
+                                {branch.isMain && (
+                                    <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">
+                                        สาขาหลัก
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-text-light text-center py-4">ยังไม่มีข้อมูลสาขา</p>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ==========================================
+// Shared Components
+// ==========================================
+function ReviewRow({
+    icon: Icon,
+    label,
+    value,
+}: {
+    icon: React.ElementType;
+    label: string;
+    value?: string;
+}) {
+    return (
+        <div className="flex items-start gap-3 px-3.5 py-2.5 rounded-xl" style={{ background: "var(--input-bg)" }}>
+            <Icon className="w-4 h-4 text-text-light shrink-0 mt-0.5" />
+            <div className="min-w-0">
+                <p className="text-[11px] text-text-light uppercase tracking-wide">{label}</p>
+                <p className="text-sm text-text-main font-medium mt-0.5 break-words">
+                    {value || "—"}
+                </p>
+            </div>
         </div>
     );
 }

@@ -4,6 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Building2, GitBranch, Download, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
 import StatusBadge from "./StatusBadge";
+import { useSessionStore } from "@/stores/useSessionStore";
+import { logoutSession } from "@/actions/onboarding";
 import type { OnboardingSession, ProductType } from "@/types";
 import { getEntityLabel } from "@/types";
 
@@ -28,6 +30,7 @@ const NAV_ITEMS = [
 export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
+    const { clearSession } = useSessionStore();
     const product = session.product || "dr_ease";
     const brand = BRAND[product] || BRAND.dr_ease;
     const entity = getEntityLabel(product);
@@ -164,7 +167,11 @@ export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSid
                 {/* Logout */}
                 <div className="shrink-0 px-4 pb-5">
                     <button
-                        onClick={() => navigate("/console/settings")}
+                        onClick={async () => {
+                            await logoutSession();
+                            clearSession();
+                            router.replace("/onboard");
+                        }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-text-light hover:text-red-400 hover:bg-red-50/50 transition-all"
                     >
                         <LogOut className="w-4 h-4" />

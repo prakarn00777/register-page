@@ -150,7 +150,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                     <button
                                         onClick={() => {
                                             setWizardMode(false);
-                                            router.push("/console");
+                                            router.push("/console/info");
                                         }}
                                         className="text-xs text-text-light hover:text-text-muted transition-colors"
                                     >

@@ -27,6 +27,10 @@ export default function ConsoleDashboardPage() {
         return <WizardReview />;
     }
 
+    // Normal mode — no dashboard, redirect to info page
+    router.replace("/console/info");
+    return null;
+
     // Calculate data completeness
     const checks = [
         !!session.clinic_data?.clinicNameTh,

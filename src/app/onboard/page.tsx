@@ -45,7 +45,7 @@ export default function OnboardLandingPage() {
                 useSessionStore.getState().setWizardMode(true);
                 router.push("/console/info");
             } else {
-                router.push("/console");
+                router.push("/console/info");
             }
         } catch {
             setError("เกิดข้อผิดพลาด กรุณาลองใหม่");

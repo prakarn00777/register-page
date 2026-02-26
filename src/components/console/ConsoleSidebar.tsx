@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Building2, GitBranch, Download, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { Building2, GitBranch, Download, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import type { OnboardingSession, ProductType } from "@/types";
 import { getEntityLabel } from "@/types";
@@ -19,7 +19,6 @@ const BRAND: Record<ProductType, { name: string; logo: string }> = {
 };
 
 const NAV_ITEMS = [
-    { path: "/console", label: "ภาพรวม", icon: LayoutDashboard },
     { path: "/console/info", label: "ข้อมูลร้าน", icon: Building2 },
     { path: "/console/branches", label: "สาขา", icon: GitBranch },
     { path: "/console/import", label: "นำเข้าข้อมูล", icon: Download },

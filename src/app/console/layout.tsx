@@ -216,8 +216,9 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                 ) : isLastStep ? (
                                     <button
                                         onClick={() => {
-                                            setWizardMode(false);
                                             router.push("/console/easepay");
+                                            // Delay wizardMode off to prevent /console redirect race
+                                            setTimeout(() => setWizardMode(false), 200);
                                         }}
                                         className="btn btn-primary text-sm"
                                     >

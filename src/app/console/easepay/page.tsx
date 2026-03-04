@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import EasePayOffer from "@/components/console/EasePayOffer";
 import { useSessionStore } from "@/stores/useSessionStore";
@@ -8,6 +9,7 @@ import { getEasePayApplication, type EasePayApplication } from "@/actions/easepa
 
 export default function EasePayPage() {
     const { session } = useSessionStore();
+    const searchParams = useSearchParams();
     const [existing, setExisting] = useState<EasePayApplication | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -35,6 +37,7 @@ export default function EasePayPage() {
             session={session}
             existingApplication={existing}
             onSubmitted={setExisting}
+            isWizardFlow={searchParams.get("from") === "wizard"}
         />
     );
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, type CSSProperties } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
     Loader2, Building2, GitBranch, CheckCircle2,
-    ArrowRight, ArrowLeft,
+    ArrowRight, ArrowLeft, CreditCard,
     type LucideIcon,
 } from "lucide-react";
 import ConsoleSidebar from "@/components/console/ConsoleSidebar";
@@ -85,6 +85,7 @@ function getWizardSteps(product: ProductType): WizardStepConfig[] {
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { session, setSession, isLoading, setLoading, wizardMode, setWizardMode } = useSessionStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -216,7 +217,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                 ) : isLastStep ? (
                                     <button
                                         onClick={() => {
-                                            router.push("/console/easepay");
+                                            router.push("/console/easepay?from=wizard");
                                             // Delay wizardMode off to prevent /console redirect race
                                             setTimeout(() => setWizardMode(false), 200);
                                         }}
@@ -289,6 +290,53 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                 {toast && (
                     <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
                 )}
+            </div>
+        );
+    }
+
+    // Ease Pay wizard offer (full-screen, from wizard completion only)
+    if (pathname === "/console/easepay" && searchParams.get("from") === "wizard") {
+        return (
+            <div className="min-h-screen bg-white" style={themeStyle}>
+                <div className="flex min-h-screen">
+                    <div className="flex-1 flex flex-col min-h-screen lg:mr-[42%]">
+                        <div className="px-6 sm:px-10 pt-8 pb-4">
+                            <div className="flex items-center gap-3">
+                                <Image src={brand.logo} alt={brand.name} width={36} height={36} className="rounded-full" />
+                                <div>
+                                    <p className="text-sm font-bold text-text-main">{brand.name}</p>
+                                    <p className="text-xs text-text-muted">{session.customer_name}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <main className="flex-1 px-6 sm:px-10 pb-6 overflow-y-auto">
+                            {children}
+                        </main>
+                    </div>
+                    <div className="hidden lg:block fixed top-0 right-0 bottom-0 w-[42%]">
+                        <div
+                            className="relative w-full h-full overflow-hidden"
+                            style={{ background: "linear-gradient(135deg, #6C5CE7 0%, #8B6CF7 40%, #A855F7 100%)" }}
+                        >
+                            <div className="absolute w-[280px] h-[280px] rounded-full bg-white/[0.07] -top-10 -right-10 animate-float-1" />
+                            <div className="absolute w-[180px] h-[180px] rounded-full bg-white/[0.05] bottom-[15%] -left-12 animate-float-2" />
+                            <div className="absolute w-[100px] h-[100px] rounded-full bg-white/[0.04] top-[45%] left-[35%] animate-float-3" />
+                            <div className="absolute inset-0 flex flex-col items-center justify-center px-12">
+                                <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-6">
+                                    <CreditCard className="w-8 h-8 text-white" />
+                                </div>
+                                <h2 className="text-white text-2xl font-bold mb-3 text-center">Ease Pay</h2>
+                                <p className="text-white/50 text-sm leading-relaxed text-center whitespace-pre-line">
+                                    {"รับชำระเงินออนไลน์\nง่าย สะดวก ปลอดภัย"}
+                                </p>
+                            </div>
+                            <div className="absolute bottom-10 left-0 right-0 flex justify-center">
+                                <Image src="/logo-easepay.png" alt="Ease Pay" width={32} height={32} className="rounded-full opacity-30" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             </div>
         );
     }

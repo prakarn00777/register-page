@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
     CreditCard, Monitor, CheckCircle2, Clock,
-    ArrowLeft, Send, Gift, Zap, Shield, QrCode, Smartphone,
+    ArrowLeft, ArrowRight, Send, Gift, Zap, Shield, QrCode, Smartphone,
 } from "lucide-react";
 import FormField from "@/components/ui/FormField";
 import { submitEasePayFromOnboarding, type EasePayApplication } from "@/actions/easepay";
@@ -15,6 +16,7 @@ interface EasePayOfferProps {
     session: OnboardingSession;
     existingApplication: EasePayApplication | null;
     onSubmitted: (app: EasePayApplication) => void;
+    isWizardFlow?: boolean;
 }
 
 const BUSINESS_CATEGORIES = [
@@ -36,8 +38,10 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
     rejected: { label: "ไม่ผ่าน", color: "#EF4444", bg: "rgba(239, 68, 68, 0.1)" },
 };
 
-export default function EasePayOffer({ session, existingApplication, onSubmitted }: EasePayOfferProps) {
+export default function EasePayOffer({ session, existingApplication, onSubmitted, isWizardFlow }: EasePayOfferProps) {
+    const router = useRouter();
     const [phase, setPhase] = useState<Phase>("info");
+    const exitToConsole = () => router.push("/console/info");
 
     // Pre-fill from onboarding session
     const clinic = session.clinic_data || {};
@@ -214,6 +218,15 @@ export default function EasePayOffer({ session, existingApplication, onSubmitted
                             ))}
                         </div>
                     </div>
+
+                    {/* Exit to console */}
+                    <button
+                        onClick={exitToConsole}
+                        className="btn btn-primary text-sm mx-auto"
+                    >
+                        เข้าสู่หน้าจัดการ
+                        <ArrowRight className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
         );
@@ -370,6 +383,14 @@ export default function EasePayOffer({ session, existingApplication, onSubmitted
                 <Zap className="w-4 h-4" />
                 สมัคร Ease Pay เลย
             </button>
+            {isWizardFlow && (
+                <button
+                    onClick={exitToConsole}
+                    className="w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-medium text-text-light hover:text-text-muted transition-colors"
+                >
+                    ข้ามไปก่อน
+                </button>
+            )}
         </div>
     );
 }

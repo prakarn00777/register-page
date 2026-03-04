@@ -7,7 +7,7 @@ import { useSessionStore } from "@/stores/useSessionStore";
 import { getEasePayApplication, type EasePayApplication } from "@/actions/easepay";
 
 export default function EasePayPage() {
-    const { session, wizardMode } = useSessionStore();
+    const { session } = useSessionStore();
     const [existing, setExisting] = useState<EasePayApplication | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,6 @@ export default function EasePayPage() {
             session={session}
             existingApplication={existing}
             onSubmitted={setExisting}
-            isWizardFlow={wizardMode}
         />
     );
 }

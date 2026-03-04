@@ -4,20 +4,20 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
     CreditCard, Monitor, CheckCircle2, Clock,
-    ArrowLeft, ArrowRight, Send, Gift, Zap, Shield, QrCode, Smartphone,
+    ArrowRight, Send,
 } from "lucide-react";
 import FormField from "@/components/ui/FormField";
 import { submitEasePayFromOnboarding, type EasePayApplication } from "@/actions/easepay";
+import { submitForReview } from "@/actions/onboarding";
 import { useSessionStore } from "@/stores/useSessionStore";
 import type { OnboardingSession, EasePayService } from "@/types";
 
-type Phase = "info" | "form" | "success";
+type Phase = "form" | "success";
 
 interface EasePayOfferProps {
     session: OnboardingSession;
     existingApplication: EasePayApplication | null;
     onSubmitted: (app: EasePayApplication) => void;
-    isWizardFlow?: boolean;
 }
 
 const BUSINESS_CATEGORIES = [
@@ -39,10 +39,10 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
     rejected: { label: "ไม่ผ่าน", color: "#EF4444", bg: "rgba(239, 68, 68, 0.1)" },
 };
 
-export default function EasePayOffer({ session, existingApplication, onSubmitted, isWizardFlow }: EasePayOfferProps) {
+export default function EasePayOffer({ session, existingApplication, onSubmitted }: EasePayOfferProps) {
     const router = useRouter();
     const { setWizardMode } = useSessionStore();
-    const [phase, setPhase] = useState<Phase>("info");
+    const [phase, setPhase] = useState<Phase>("form");
     const exitToConsole = () => {
         setWizardMode(false);
         router.push("/console/info");
@@ -91,6 +91,8 @@ export default function EasePayOffer({ session, existingApplication, onSubmitted
                 services,
             });
             if (result.success) {
+                // Also submit onboarding data for CS review
+                await submitForReview();
                 setPhase("success");
                 // Update parent with a synthetic application object
                 onSubmitted({
@@ -312,9 +314,8 @@ export default function EasePayOffer({ session, existingApplication, onSubmitted
 
                     {/* Actions */}
                     <div className="flex items-center justify-between mt-5">
-                        <button onClick={() => setPhase("info")} className="btn btn-ghost text-sm">
-                            <ArrowLeft className="w-4 h-4" />
-                            ย้อนกลับ
+                        <button onClick={exitToConsole} className="btn btn-ghost text-sm">
+                            ยกเลิก
                         </button>
                         <button
                             onClick={handleSubmit}
@@ -334,70 +335,8 @@ export default function EasePayOffer({ session, existingApplication, onSubmitted
         );
     }
 
-    // ==========================================
-    // Phase: Info (default — invitation to sign up)
-    // ==========================================
-    return (
-        <div>
-            {pageHeader}
-
-            {/* Promo banner */}
-            <div
-                className="rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
-                style={{ background: "linear-gradient(135deg, #6C5CE7 0%, #8B6CF7 40%, #A855F7 100%)" }}
-            >
-                {/* Decorative circles */}
-                <div className="absolute w-32 h-32 rounded-full bg-white/[0.08] -top-8 -right-8" />
-                <div className="absolute w-20 h-20 rounded-full bg-white/[0.05] bottom-4 left-8" />
-
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2.5 mb-3">
-                        <Gift className="w-5 h-5" />
-                        <span className="text-sm font-semibold opacity-90">สิทธิพิเศษสำหรับคุณ</span>
-                    </div>
-                    <h2 className="text-lg sm:text-xl font-bold mb-2">
-                        เปิดใช้งาน Ease Pay ได้ฟรี!
-                    </h2>
-                    <p className="text-sm opacity-75 leading-relaxed max-w-md">
-                        รับชำระเงินออนไลน์และบัตรเครดิตครบทุกช่องทาง ไม่มีค่าธรรมเนียมแรกเข้า
-                    </p>
-                </div>
-            </div>
-
-            {/* Features grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                {[
-                    { icon: QrCode, text: "QR Code & PromptPay" },
-                    { icon: CreditCard, text: "บัตรเครดิต/เดบิต" },
-                    { icon: Smartphone, text: "Payment Link" },
-                    { icon: Shield, text: "มาตรฐานสากล" },
-                ].map(({ icon: Icon, text }) => (
-                    <div key={text} className="glass-card p-4 text-center">
-                        <Icon className="w-5 h-5 mx-auto mb-2" style={{ color: "#6C5CE7" }} />
-                        <p className="text-xs font-medium text-text-main">{text}</p>
-                    </div>
-                ))}
-            </div>
-
-            {/* CTA */}
-            <button
-                onClick={() => setPhase("form")}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                style={{ background: "linear-gradient(135deg, #6C5CE7, #A855F7)", boxShadow: "0 4px 14px rgba(108, 92, 231, 0.3)" }}
-            >
-                <Zap className="w-4 h-4" />
-                สมัคร Ease Pay เลย
-            </button>
-            {isWizardFlow && (
-                <button
-                    onClick={exitToConsole}
-                    className="w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-medium text-text-light hover:text-text-muted transition-colors"
-                >
-                    ข้ามไปก่อน
-                </button>
-            )}
-        </div>
-    );
+    // Default: show form (no more info phase — modal in layout handles invitation)
+    return null;
 }
 
 // ==========================================

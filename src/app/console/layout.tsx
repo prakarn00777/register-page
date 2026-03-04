@@ -4,13 +4,13 @@ import { useState, useEffect, type CSSProperties } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import {
-    Loader2, Building2, GitBranch, CheckCircle2,
+    Loader2, Building2, GitBranch, CheckCircle2, Sparkles,
     ArrowRight, ArrowLeft, CreditCard,
     type LucideIcon,
 } from "lucide-react";
 import ConsoleSidebar from "@/components/console/ConsoleSidebar";
 import Toast from "@/components/ui/Toast";
-import { getConsoleSession } from "@/actions/onboarding";
+import { getConsoleSession, submitForReview } from "@/actions/onboarding";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { getEntityLabel } from "@/types";
 import type { ProductType } from "@/types";
@@ -87,6 +87,9 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
     const pathname = usePathname();
     const { session, setSession, isLoading, setLoading, wizardMode, setWizardMode } = useSessionStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [showEasePayModal, setShowEasePayModal] = useState(false);
+    const [wizardSubmitted, setWizardSubmitted] = useState(false);
+    const [submittingSkip, setSubmittingSkip] = useState(false);
 
     // Wizard → Ease Pay: wizardMode stays true until user exits the easepay page
     const isWizardEasePay = pathname === "/console/easepay" && wizardMode;
@@ -132,7 +135,11 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
 
     if (showWizard) {
         const currentStep = WIZARD_STEPS[currentStepIndex];
-        const IllustrationIcon = currentStep.illustrationIcon;
+        const IllustrationIcon = wizardSubmitted ? Sparkles : currentStep.illustrationIcon;
+        const illustrationTitle = wizardSubmitted ? "เสร็จเรียบร้อย!" : currentStep.illustrationTitle;
+        const illustrationSubtitle = wizardSubmitted
+            ? "ข้อมูลของคุณถูกส่งเรียบร้อยแล้ว\nทีมงานจะดำเนินการต่อให้"
+            : currentStep.illustrationSubtitle;
 
         return (
             <div className="min-h-screen bg-white" style={themeStyle}>
@@ -149,7 +156,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                         <p className="text-xs text-text-muted">{session.customer_name}</p>
                                     </div>
                                 </div>
-                                {!isLastStep && (
+                                {!isLastStep && !wizardSubmitted && (
                                     <button
                                         onClick={() => {
                                             setWizardMode(false);
@@ -163,77 +170,114 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                             </div>
 
                             {/* Progress dots */}
-                            <div className="flex items-center gap-2 mb-6">
-                                {WIZARD_STEPS.map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => router.push(WIZARD_STEPS[i].path)}
-                                        className={`
-                                            h-2 rounded-full transition-all duration-300
-                                            ${i === currentStepIndex
-                                                ? "w-8"
-                                                : i < currentStepIndex
-                                                    ? "w-2 bg-emerald-400"
-                                                    : "w-2 bg-slate-200"
-                                            }
-                                        `}
-                                        style={i === currentStepIndex ? { background: "var(--primary)" } : undefined}
-                                    />
-                                ))}
-                            </div>
+                            {!wizardSubmitted && (
+                                <div className="flex items-center gap-2 mb-6">
+                                    {WIZARD_STEPS.map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => router.push(WIZARD_STEPS[i].path)}
+                                            className={`
+                                                h-2 rounded-full transition-all duration-300
+                                                ${i === currentStepIndex
+                                                    ? "w-8"
+                                                    : i < currentStepIndex
+                                                        ? "w-2 bg-emerald-400"
+                                                        : "w-2 bg-slate-200"
+                                                }
+                                            `}
+                                            style={i === currentStepIndex ? { background: "var(--primary)" } : undefined}
+                                        />
+                                    ))}
+                                </div>
+                            )}
 
                             {/* Step label */}
-                            <p className="text-xs text-text-light font-medium tracking-wide uppercase mb-1">
-                                ขั้นตอนที่ {currentStepIndex + 1}/{WIZARD_STEPS.length}
-                            </p>
+                            {!wizardSubmitted && (
+                                <p className="text-xs text-text-light font-medium tracking-wide uppercase mb-1">
+                                    ขั้นตอนที่ {currentStepIndex + 1}/{WIZARD_STEPS.length}
+                                </p>
+                            )}
                         </div>
 
                         {/* Middle: Page content (scrollable) */}
                         <main className="flex-1 px-6 sm:px-10 pb-6 overflow-y-auto">
-                            {children}
+                            {wizardSubmitted ? (
+                                <div className="flex-1 flex items-center justify-center py-16">
+                                    <div className="text-center animate-fade-up max-w-sm">
+                                        <div
+                                            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 animate-success"
+                                            style={{ background: "rgba(0, 186, 136, 0.1)" }}
+                                        >
+                                            <CheckCircle2 className="w-10 h-10" style={{ color: "var(--success)" }} />
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-text-main mb-3">
+                                            ส่งข้อมูลเรียบร้อยแล้ว!
+                                        </h2>
+                                        <p className="text-sm text-text-muted leading-relaxed mb-8">
+                                            ทีม CS จะตรวจสอบข้อมูลและดำเนินการต่อให้ค่ะ
+                                            หากมีข้อมูลเพิ่มเติมจะติดต่อกลับผ่าน LINE
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                setWizardMode(false);
+                                                setWizardSubmitted(false);
+                                                router.push("/console/info");
+                                            }}
+                                            className="btn btn-primary text-sm mx-auto"
+                                        >
+                                            เข้าสู่หน้าจัดการ
+                                            <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                children
+                            )}
                         </main>
 
-                        {/* Bottom: Navigation */}
-                        <div className="sticky bottom-0 bg-white/90 backdrop-blur-sm border-t border-border-light">
-                            <div className="px-6 sm:px-10 py-4 flex items-center justify-between">
-                                {prevStep ? (
-                                    <button
-                                        onClick={() => router.push(prevStep.path)}
-                                        className="btn btn-ghost text-sm"
-                                    >
-                                        <ArrowLeft className="w-4 h-4" />
-                                        ย้อนกลับ
-                                    </button>
-                                ) : (
-                                    <div />
-                                )}
+                        {/* Bottom: Navigation (hide when submitted) */}
+                        {!wizardSubmitted && (
+                            <div className="sticky bottom-0 bg-white/90 backdrop-blur-sm border-t border-border-light">
+                                <div className="px-6 sm:px-10 py-4 flex items-center justify-between">
+                                    {prevStep ? (
+                                        <button
+                                            onClick={() => router.push(prevStep.path)}
+                                            className="btn btn-ghost text-sm"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            ย้อนกลับ
+                                        </button>
+                                    ) : (
+                                        <div />
+                                    )}
 
-                                {nextStep ? (
-                                    <button
-                                        onClick={() => router.push(nextStep.path)}
-                                        className="btn btn-primary text-sm"
-                                    >
-                                        ถัดไป
-                                        <ArrowRight className="w-4 h-4" />
-                                    </button>
-                                ) : isLastStep ? (
-                                    <button
-                                        onClick={() => router.push("/console/easepay")}
-                                        className="btn btn-primary text-sm"
-                                    >
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        เสร็จสิ้น
-                                    </button>
-                                ) : null}
+                                    {nextStep ? (
+                                        <button
+                                            onClick={() => router.push(nextStep.path)}
+                                            className="btn btn-primary text-sm"
+                                        >
+                                            ถัดไป
+                                            <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                    ) : isLastStep ? (
+                                        <button
+                                            onClick={() => setShowEasePayModal(true)}
+                                            className="btn btn-primary text-sm"
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            เสร็จสิ้น
+                                        </button>
+                                    ) : null}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* ===== Right Panel — Illustration ===== */}
                     <div className="hidden lg:block fixed top-0 right-0 bottom-0 w-[42%]">
                         <div
                             className="relative w-full h-full overflow-hidden"
-                            style={{ background: brand.gradient }}
+                            style={{ background: wizardSubmitted ? "linear-gradient(135deg, #00BA88 0%, #00D4A0 40%, #34D399 100%)" : brand.gradient }}
                         >
                             {/* Decorative floating circles */}
                             <div className="absolute w-[280px] h-[280px] rounded-full bg-white/[0.07] -top-10 -right-10 animate-float-1" />
@@ -248,30 +292,31 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                     <IllustrationIcon className="w-8 h-8 text-white" />
                                 </div>
                                 <h2 className="text-white text-2xl font-bold mb-3 text-center">
-                                    {currentStep.illustrationTitle}
+                                    {illustrationTitle}
                                 </h2>
                                 <p className="text-white/50 text-sm leading-relaxed text-center whitespace-pre-line">
-                                    {currentStep.illustrationSubtitle}
+                                    {illustrationSubtitle}
                                 </p>
                             </div>
 
                             {/* Step counter at bottom */}
                             <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-4">
-                                {/* Mini dots */}
-                                <div className="flex items-center gap-2">
-                                    {WIZARD_STEPS.map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className={`rounded-full transition-all duration-300 ${
-                                                i === currentStepIndex
-                                                    ? "w-6 h-2 bg-white/60"
-                                                    : i < currentStepIndex
-                                                        ? "w-2 h-2 bg-white/40"
-                                                        : "w-2 h-2 bg-white/20"
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
+                                {!wizardSubmitted && (
+                                    <div className="flex items-center gap-2">
+                                        {WIZARD_STEPS.map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className={`rounded-full transition-all duration-300 ${
+                                                    i === currentStepIndex
+                                                        ? "w-6 h-2 bg-white/60"
+                                                        : i < currentStepIndex
+                                                            ? "w-2 h-2 bg-white/40"
+                                                            : "w-2 h-2 bg-white/20"
+                                                }`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                                 <Image
                                     src={brand.logo}
                                     alt={brand.name}
@@ -283,6 +328,55 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                         </div>
                     </div>
                 </div>
+
+                {/* Ease Pay Invitation Modal */}
+                {showEasePayModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            onClick={() => setShowEasePayModal(false)}
+                        />
+                        <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-up">
+                            <div
+                                className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                                style={{ background: "linear-gradient(135deg, #6C5CE7, #A855F7)" }}
+                            >
+                                <CreditCard className="w-7 h-7 text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold text-text-main text-center mb-2">
+                                เปิดใช้งาน Ease Pay ได้ฟรี!
+                            </h3>
+                            <p className="text-sm text-text-muted text-center leading-relaxed mb-8">
+                                รับชำระเงินออนไลน์ครบทุกช่องทาง
+                                ไม่มีค่าธรรมเนียมแรกเข้า
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setShowEasePayModal(false);
+                                    router.push("/console/easepay");
+                                }}
+                                className="w-full py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98] mb-3"
+                                style={{ background: "linear-gradient(135deg, #6C5CE7, #A855F7)", boxShadow: "0 4px 14px rgba(108, 92, 231, 0.3)" }}
+                            >
+                                <CreditCard className="w-4 h-4" />
+                                เปิดใช้งาน Ease Pay
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setSubmittingSkip(true);
+                                    await submitForReview();
+                                    setShowEasePayModal(false);
+                                    setWizardSubmitted(true);
+                                    setSubmittingSkip(false);
+                                }}
+                                disabled={submittingSkip}
+                                className="w-full py-2.5 text-sm text-text-light hover:text-text-muted transition-colors text-center"
+                            >
+                                {submittingSkip ? "กำลังส่งข้อมูล..." : "ข้ามไปก่อน"}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Toast */}
                 {toast && (

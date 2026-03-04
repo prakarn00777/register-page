@@ -152,6 +152,21 @@ export const WIZARD_STEPS: WizardStep[] = [
     { id: 5, label: "ตรวจสอบ & ส่ง", description: "ตรวจสอบข้อมูลและส่ง" },
 ];
 
+// ============================================
+// Ease Pay Registration
+// ============================================
+export type EasePayService = "online" | "edc";
+
+export interface EasePayFormData {
+    fullName: string;
+    email: string;
+    phone: string;
+    businessName: string;
+    businessCategory: string;
+    websiteUrl: string;
+    services: EasePayService[];
+}
+
 // Product-aware entity label
 export function getEntityLabel(product: ProductType): string {
     return product === "easepos" ? "ร้าน" : "คลินิก";

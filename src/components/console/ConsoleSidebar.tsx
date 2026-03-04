@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Building2, GitBranch, Download, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { Building2, GitBranch, Download, Settings, CreditCard, LogOut, Menu, X, ChevronRight } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { logoutSession } from "@/actions/onboarding";
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
     { path: "/console/info", label: "ข้อมูลร้าน", icon: Building2 },
     { path: "/console/branches", label: "สาขา", icon: GitBranch },
     { path: "/console/import", label: "นำเข้าข้อมูล", icon: Download },
+    { path: "/console/easepay", label: "Ease Pay", icon: CreditCard },
     { path: "/console/settings", label: "ตั้งค่า", icon: Settings },
 ];
 

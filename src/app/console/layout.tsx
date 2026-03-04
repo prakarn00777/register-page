@@ -215,7 +215,10 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                     </button>
                                 ) : isLastStep ? (
                                     <button
-                                        onClick={() => setWizardMode(false)}
+                                        onClick={() => {
+                                            setWizardMode(false);
+                                            router.push("/console/easepay");
+                                        }}
                                         className="btn btn-primary text-sm"
                                     >
                                         <CheckCircle2 className="w-4 h-4" />

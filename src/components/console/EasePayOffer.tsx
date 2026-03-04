@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import FormField from "@/components/ui/FormField";
 import { submitEasePayFromOnboarding, type EasePayApplication } from "@/actions/easepay";
+import { useSessionStore } from "@/stores/useSessionStore";
 import type { OnboardingSession, EasePayService } from "@/types";
 
 type Phase = "info" | "form" | "success";
@@ -40,8 +41,12 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
 
 export default function EasePayOffer({ session, existingApplication, onSubmitted, isWizardFlow }: EasePayOfferProps) {
     const router = useRouter();
+    const { setWizardMode } = useSessionStore();
     const [phase, setPhase] = useState<Phase>("info");
-    const exitToConsole = () => router.push("/console/info");
+    const exitToConsole = () => {
+        setWizardMode(false);
+        router.push("/console/info");
+    };
 
     // Pre-fill from onboarding session
     const clinic = session.clinic_data || {};

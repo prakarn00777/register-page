@@ -87,16 +87,9 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
     const pathname = usePathname();
     const { session, setSession, isLoading, setLoading, wizardMode, setWizardMode } = useSessionStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [isWizardEasePay, setIsWizardEasePay] = useState(false);
 
-    useEffect(() => {
-        if (pathname === "/console/easepay") {
-            const params = new URLSearchParams(window.location.search);
-            setIsWizardEasePay(params.get("from") === "wizard");
-        } else {
-            setIsWizardEasePay(false);
-        }
-    }, [pathname]);
+    // Wizard → Ease Pay: wizardMode stays true until user exits the easepay page
+    const isWizardEasePay = pathname === "/console/easepay" && wizardMode;
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
     useEffect(() => {
@@ -225,11 +218,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                                     </button>
                                 ) : isLastStep ? (
                                     <button
-                                        onClick={() => {
-                                            router.push("/console/easepay?from=wizard");
-                                            // Delay wizardMode off to prevent /console redirect race
-                                            setTimeout(() => setWizardMode(false), 200);
-                                        }}
+                                        onClick={() => router.push("/console/easepay")}
                                         className="btn btn-primary text-sm"
                                     >
                                         <CheckCircle2 className="w-4 h-4" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, type CSSProperties } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import {
     Loader2, Building2, GitBranch, CheckCircle2,
@@ -85,9 +85,18 @@ function getWizardSteps(product: ProductType): WizardStepConfig[] {
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const searchParams = useSearchParams();
     const { session, setSession, isLoading, setLoading, wizardMode, setWizardMode } = useSessionStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isWizardEasePay, setIsWizardEasePay] = useState(false);
+
+    useEffect(() => {
+        if (pathname === "/console/easepay") {
+            const params = new URLSearchParams(window.location.search);
+            setIsWizardEasePay(params.get("from") === "wizard");
+        } else {
+            setIsWizardEasePay(false);
+        }
+    }, [pathname]);
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
     useEffect(() => {
@@ -295,7 +304,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
     }
 
     // Ease Pay wizard offer (full-screen, from wizard completion only)
-    if (pathname === "/console/easepay" && searchParams.get("from") === "wizard") {
+    if (isWizardEasePay) {
         return (
             <div className="min-h-screen bg-white" style={themeStyle}>
                 <div className="flex min-h-screen">

@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Building2, GitBranch, Download, Settings, CreditCard, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { Building2, GitBranch, Download, Settings, CreditCard, LogOut, Menu, X, ChevronRight, ChevronDown, KeyRound } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import { useSessionStore } from "@/stores/useSessionStore";
 import { logoutSession } from "@/actions/onboarding";
@@ -21,12 +22,17 @@ const BRAND: Record<ProductType, { name: string; logo: string }> = {
 };
 
 const NAV_ITEMS = [
-    { path: "/console/info", label: "ข้อมูลร้าน", icon: Building2, tourId: "tour-nav-info" },
-    { path: "/console/branches", label: "สาขา", icon: GitBranch, tourId: "tour-nav-branches" },
     { path: "/console/import", label: "นำเข้าข้อมูล", icon: Download, tourId: "tour-nav-import" },
     { path: "/console/easepay", label: "Ease Pay", icon: CreditCard, tourId: "tour-nav-easepay" },
-    { path: "/console/settings", label: "ตั้งค่า", icon: Settings, tourId: "tour-nav-settings" },
 ];
+
+const SETTINGS_SUB_ITEMS = [
+    { path: "/console/info", label: "ข้อมูลร้าน", icon: Building2, tourId: "tour-nav-info" },
+    { path: "/console/branches", label: "สาขา", icon: GitBranch, tourId: "tour-nav-branches" },
+    { path: "/console/settings", label: "บัญชี", icon: KeyRound, tourId: "tour-nav-settings" },
+];
+
+const SETTINGS_PATHS = SETTINGS_SUB_ITEMS.map((i) => i.path);
 
 export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSidebarProps) {
     const pathname = usePathname();
@@ -35,6 +41,10 @@ export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSid
     const product = session.product || "dr_ease";
     const brand = BRAND[product] || BRAND.dr_ease;
     const entity = getEntityLabel(product);
+
+    // Auto-expand settings if current page is a settings sub-item
+    const isSettingsActive = SETTINGS_PATHS.includes(pathname);
+    const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
 
     const navigate = (path: string) => {
         router.push(path);
@@ -97,45 +107,79 @@ export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSid
                     {NAV_ITEMS.map((item) => {
                         const isActive = pathname === item.path;
                         const Icon = item.icon;
-                        // Override label for entity-aware names
-                        const label = item.label === "ข้อมูลร้าน" ? `ข้อมูล${entity}` : item.label;
 
                         return (
-                            <button
+                            <NavButton
                                 key={item.path}
-                                data-tour={item.tourId}
+                                tourId={item.tourId}
+                                icon={Icon}
+                                label={item.label}
+                                isActive={isActive}
                                 onClick={() => navigate(item.path)}
-                                className={`
-                                    w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                                    text-sm font-medium transition-all duration-200
-                                    group relative overflow-hidden
-                                    ${isActive
-                                        ? "text-white shadow-lg"
-                                        : "text-text-muted hover:text-text-main hover:bg-black/[0.03]"
-                                    }
-                                `}
-                                style={isActive ? {
-                                    background: `linear-gradient(135deg, var(--primary), var(--primary-hover))`,
-                                    boxShadow: `0 4px 15px color-mix(in srgb, var(--primary) 35%, transparent)`,
-                                } : undefined}
-                            >
-                                {/* Glow effect for active */}
-                                {isActive && (
-                                    <div
-                                        className="absolute inset-0 opacity-20"
-                                        style={{
-                                            background: "radial-gradient(circle at 30% 50%, rgba(255,255,255,0.4), transparent 70%)",
-                                        }}
-                                    />
-                                )}
-                                <Icon className={`w-[18px] h-[18px] relative z-10 ${isActive ? "" : "opacity-60 group-hover:opacity-100"} transition-opacity`} />
-                                <span className="relative z-10">{label}</span>
-                                {isActive && (
-                                    <ChevronRight className="w-4 h-4 ml-auto relative z-10 opacity-60" />
-                                )}
-                            </button>
+                            />
                         );
                     })}
+
+                    {/* Expandable: ตั้งค่า */}
+                    <div data-tour="tour-settings-group">
+                        <button
+                            onClick={() => setSettingsOpen(!settingsOpen)}
+                            className={`
+                                w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                                text-sm font-medium transition-all duration-200
+                                ${isSettingsActive
+                                    ? "text-text-main bg-black/[0.03]"
+                                    : "text-text-muted hover:text-text-main hover:bg-black/[0.03]"
+                                }
+                            `}
+                        >
+                            <Settings className={`w-[18px] h-[18px] ${isSettingsActive ? "opacity-100" : "opacity-60"} transition-opacity`} />
+                            <span>ตั้งค่า</span>
+                            <ChevronDown
+                                className={`w-4 h-4 ml-auto opacity-40 transition-transform duration-200 ${settingsOpen ? "rotate-180" : ""}`}
+                            />
+                        </button>
+
+                        {/* Sub items */}
+                        <div
+                            className="overflow-hidden transition-all duration-200"
+                            style={{
+                                maxHeight: settingsOpen ? `${SETTINGS_SUB_ITEMS.length * 44}px` : "0px",
+                                opacity: settingsOpen ? 1 : 0,
+                            }}
+                        >
+                            <div className="pl-4 mt-1 space-y-0.5">
+                                {SETTINGS_SUB_ITEMS.map((item) => {
+                                    const isActive = pathname === item.path;
+                                    const Icon = item.icon;
+                                    const label = item.label === "ข้อมูลร้าน" ? `ข้อมูล${entity}` : item.label;
+
+                                    return (
+                                        <button
+                                            key={item.path}
+                                            data-tour={item.tourId}
+                                            onClick={() => navigate(item.path)}
+                                            className={`
+                                                w-full flex items-center gap-3 px-4 py-2.5 rounded-lg
+                                                text-[13px] font-medium transition-all duration-200
+                                                ${isActive
+                                                    ? "text-text-main"
+                                                    : "text-text-light hover:text-text-main hover:bg-black/[0.02]"
+                                                }
+                                            `}
+                                            style={isActive ? { color: "var(--primary)" } : undefined}
+                                        >
+                                            <Icon className={`w-4 h-4 ${isActive ? "" : "opacity-50"} transition-opacity`} />
+                                            <span>{label}</span>
+                                            {isActive && (
+                                                <div className="w-1.5 h-1.5 rounded-full ml-auto" style={{ background: "var(--primary)" }} />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
                 </nav>
 
                 {/* Divider */}
@@ -182,5 +226,44 @@ export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSid
                 </div>
             </aside>
         </>
+    );
+}
+
+// Shared nav button for top-level items
+function NavButton({
+    tourId, icon: Icon, label, isActive, onClick,
+}: {
+    tourId: string; icon: React.ElementType; label: string; isActive: boolean; onClick: () => void;
+}) {
+    return (
+        <button
+            data-tour={tourId}
+            onClick={onClick}
+            className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                text-sm font-medium transition-all duration-200
+                group relative overflow-hidden
+                ${isActive
+                    ? "text-white shadow-lg"
+                    : "text-text-muted hover:text-text-main hover:bg-black/[0.03]"
+                }
+            `}
+            style={isActive ? {
+                background: `linear-gradient(135deg, var(--primary), var(--primary-hover))`,
+                boxShadow: `0 4px 15px color-mix(in srgb, var(--primary) 35%, transparent)`,
+            } : undefined}
+        >
+            {isActive && (
+                <div
+                    className="absolute inset-0 opacity-20"
+                    style={{ background: "radial-gradient(circle at 30% 50%, rgba(255,255,255,0.4), transparent 70%)" }}
+                />
+            )}
+            <Icon className={`w-[18px] h-[18px] relative z-10 ${isActive ? "" : "opacity-60 group-hover:opacity-100"} transition-opacity`} />
+            <span className="relative z-10">{label}</span>
+            {isActive && (
+                <ChevronRight className="w-4 h-4 ml-auto relative z-10 opacity-60" />
+            )}
+        </button>
     );
 }

@@ -6,12 +6,14 @@ interface SessionState {
     session: OnboardingSession | null;
     isLoading: boolean;
     wizardMode: boolean;
+    tutorialDone: boolean;
 
     // Actions
     setSession: (session: OnboardingSession) => void;
     clearSession: () => void;
     setLoading: (loading: boolean) => void;
     setWizardMode: (mode: boolean) => void;
+    setTutorialDone: (done: boolean) => void;
     updateClinicData: (data: ClinicData) => void;
     updateBranchData: (data: BranchData[]) => void;
     updateStatus: (status: OnboardingSession["status"]) => void;
@@ -27,11 +29,13 @@ export const useSessionStore = create<SessionState>()(
             session: null,
             isLoading: true,
             wizardMode: false,
+            tutorialDone: false,
 
             setSession: (session) => set({ session, isLoading: false }),
-            clearSession: () => set({ session: null, isLoading: false, wizardMode: false }),
+            clearSession: () => set({ session: null, isLoading: false, wizardMode: false, tutorialDone: false }),
             setLoading: (isLoading) => set({ isLoading }),
             setWizardMode: (wizardMode) => set({ wizardMode }),
+            setTutorialDone: (tutorialDone) => set({ tutorialDone }),
 
             updateClinicData: (clinicData) => {
                 const { session } = get();
@@ -59,7 +63,7 @@ export const useSessionStore = create<SessionState>()(
         }),
         {
             name: "onboarding_session",
-            partialize: (state) => ({ session: state.session, wizardMode: state.wizardMode }),
+            partialize: (state) => ({ session: state.session, wizardMode: state.wizardMode, tutorialDone: state.tutorialDone }),
         }
     )
 );

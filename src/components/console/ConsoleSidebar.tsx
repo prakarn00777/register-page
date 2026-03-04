@@ -21,11 +21,11 @@ const BRAND: Record<ProductType, { name: string; logo: string }> = {
 };
 
 const NAV_ITEMS = [
-    { path: "/console/info", label: "ข้อมูลร้าน", icon: Building2 },
-    { path: "/console/branches", label: "สาขา", icon: GitBranch },
-    { path: "/console/import", label: "นำเข้าข้อมูล", icon: Download },
-    { path: "/console/easepay", label: "Ease Pay", icon: CreditCard },
-    { path: "/console/settings", label: "ตั้งค่า", icon: Settings },
+    { path: "/console/info", label: "ข้อมูลร้าน", icon: Building2, tourId: "tour-nav-info" },
+    { path: "/console/branches", label: "สาขา", icon: GitBranch, tourId: "tour-nav-branches" },
+    { path: "/console/import", label: "นำเข้าข้อมูล", icon: Download, tourId: "tour-nav-import" },
+    { path: "/console/easepay", label: "Ease Pay", icon: CreditCard, tourId: "tour-nav-easepay" },
+    { path: "/console/settings", label: "ตั้งค่า", icon: Settings, tourId: "tour-nav-settings" },
 ];
 
 export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSidebarProps) {
@@ -73,7 +73,7 @@ export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSid
                 `}
             >
                 {/* Brand header */}
-                <div className="shrink-0 px-6 pt-7 pb-5">
+                <div className="shrink-0 px-6 pt-7 pb-5" data-tour="tour-brand-header">
                     <div className="flex items-center gap-3">
                         <Image
                             src={brand.logo}
@@ -103,6 +103,7 @@ export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSid
                         return (
                             <button
                                 key={item.path}
+                                data-tour={item.tourId}
                                 onClick={() => navigate(item.path)}
                                 className={`
                                     w-full flex items-center gap-3 px-4 py-3 rounded-xl
@@ -142,7 +143,7 @@ export default function ConsoleSidebar({ session, isOpen, onToggle }: ConsoleSid
 
                 {/* User info */}
                 <div className="shrink-0 px-5 py-5">
-                    <div className="glass-card p-4 space-y-3">
+                    <div className="glass-card p-4 space-y-3" data-tour="tour-user-info">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
                                 <div

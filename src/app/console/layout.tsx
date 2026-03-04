@@ -9,6 +9,7 @@ import {
     type LucideIcon,
 } from "lucide-react";
 import ConsoleSidebar from "@/components/console/ConsoleSidebar";
+import ConsoleTour from "@/components/console/ConsoleTour";
 import Toast from "@/components/ui/Toast";
 import { getConsoleSession, submitForReview } from "@/actions/onboarding";
 import { useSessionStore } from "@/stores/useSessionStore";
@@ -448,6 +449,12 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
                     {children}
                 </div>
             </main>
+
+            {/* Product Tour */}
+            <ConsoleTour
+                onForceOpenSidebar={() => setSidebarOpen(true)}
+                onCloseSidebar={() => setSidebarOpen(false)}
+            />
 
             {/* Toast */}
             {toast && (
